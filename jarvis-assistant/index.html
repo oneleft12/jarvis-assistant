@@ -7,21 +7,47 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  :root {
-    --cyan: #00e5ff;
-    --blue: #0088ff;
-    --dim: rgba(0, 229, 255, 0.35);
+  /* ===== ТЕМЫ ===== */
+  html { height: 100%; }
+  body {
+    --accent-rgb: 0, 229, 255;
+    --accent: #00e5ff;
+    --accent2: #0088ff;
     --panel: rgba(0, 24, 48, 0.42);
-    --panel-border: rgba(0, 229, 255, 0.28);
+    --panel-border: rgba(var(--accent-rgb), 0.28);
     --text: #cfefff;
-  }
-
-  html, body {
+    --bg: radial-gradient(ellipse at 50% 0%, #04122b 0%, #01060f 60%, #000308 100%);
     height: 100%;
-    background: radial-gradient(ellipse at 50% 0%, #04122b 0%, #01060f 60%, #000308 100%);
+    background: var(--bg);
     color: var(--text);
     font-family: "Segoe UI", Roboto, Arial, sans-serif;
     overflow-x: hidden;
+    transition: background 0.5s ease;
+  }
+
+  body[data-theme="matrix"] {
+    --accent-rgb: 0, 255, 136;
+    --accent: #00ff88;
+    --accent2: #00cc6a;
+    --panel: rgba(0, 40, 22, 0.42);
+    --text: #d7ffe9;
+    --bg: radial-gradient(ellipse at 50% 0%, #032015 0%, #010a06 60%, #000302 100%);
+  }
+  body[data-theme="violet"] {
+    --accent-rgb: 177, 134, 255;
+    --accent: #b186ff;
+    --accent2: #7c4dff;
+    --panel: rgba(28, 10, 55, 0.45);
+    --text: #ece2ff;
+    --bg: radial-gradient(ellipse at 50% 0%, #150a2b 0%, #06010f 60%, #030008 100%);
+  }
+  body[data-theme="amber"] {
+    --accent-rgb: 255, 176, 32;
+    --accent: #ffb020;
+    --accent2: #ff7a00;
+    --panel: rgba(45, 28, 0, 0.45);
+    --text: #ffeed0;
+    --bg: radial-gradient(ellipse at 50% 0%, #201503 0%, #0a0601 60%, #030200 100%);
   }
 
   /* ===== КИБЕР-ДОЖДЬ ===== */
@@ -41,8 +67,8 @@
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     box-shadow:
-      0 0 18px rgba(0, 150, 255, 0.12),
-      inset 0 0 24px rgba(0, 180, 255, 0.06);
+      0 0 18px rgba(var(--accent-rgb), 0.12),
+      inset 0 0 24px rgba(var(--accent-rgb), 0.06);
     position: relative;
     overflow: hidden;
   }
@@ -51,16 +77,16 @@
     position: absolute;
     top: 0; left: 0;
     width: 60px; height: 3px;
-    background: linear-gradient(90deg, var(--cyan), transparent);
+    background: linear-gradient(90deg, var(--accent), transparent);
   }
   .panel-title {
     font-size: 12px;
     letter-spacing: 3px;
     text-transform: uppercase;
-    color: var(--cyan);
-    text-shadow: 0 0 8px rgba(0, 229, 255, 0.7);
+    color: var(--accent);
+    text-shadow: 0 0 8px rgba(var(--accent-rgb), 0.7);
     padding: 12px 16px 8px;
-    border-bottom: 1px solid rgba(0, 229, 255, 0.15);
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.15);
   }
 
   /* ===== ВЕРХНЯЯ ПАНЕЛЬ ===== */
@@ -68,28 +94,80 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 14px 22px;
-    background: rgba(0, 18, 38, 0.55);
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    padding: 12px 22px;
+    background: rgba(0, 0, 0, 0.45);
     border-bottom: 1px solid var(--panel-border);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 2px 24px rgba(0, 150, 255, 0.15);
+    box-shadow: 0 2px 24px rgba(var(--accent-rgb), 0.15);
     position: sticky;
     top: 0;
     z-index: 10;
   }
   .logo {
-    font-size: clamp(14px, 2.4vw, 20px);
+    font-size: clamp(13px, 2.2vw, 19px);
     font-weight: 600;
     letter-spacing: 4px;
-    color: #eaffff;
-    text-shadow: 0 0 12px rgba(0, 229, 255, 0.8);
+    color: #fff;
+    text-shadow: 0 0 12px rgba(var(--accent-rgb), 0.8);
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
-  .logo span { color: var(--cyan); }
+  .logo span { color: var(--accent); }
+  .controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  /* переключатель тем */
+  .themes {
+    display: flex;
+    gap: 6px;
+    padding: 4px;
+    border: 1px solid var(--panel-border);
+    border-radius: 20px;
+    background: rgba(0, 0, 0, 0.3);
+  }
+  .swatch {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .swatch:hover { transform: scale(1.2); }
+  .swatch.active {
+    border-color: #fff;
+    box-shadow: 0 0 10px currentColor;
+    transform: scale(1.15);
+  }
+  .swatch[data-theme="cyan"]   { background: #00e5ff; color: #00e5ff; }
+  .swatch[data-theme="matrix"] { background: #00ff88; color: #00ff88; }
+  .swatch[data-theme="violet"] { background: #b186ff; color: #b186ff; }
+  .swatch[data-theme="amber"]  { background: #ffb020; color: #ffb020; }
+
+  .ctl-btn {
+    font: inherit;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--text);
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--panel-border);
+    border-radius: 20px;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .ctl-btn:hover {
+    box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.5);
+    color: #fff;
+  }
+  .ctl-btn.off { opacity: 0.55; }
+
   .status {
     display: flex;
     align-items: center;
@@ -97,18 +175,18 @@
     font-size: 12px;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: #7dffcb;
-    border: 1px solid rgba(0, 255, 170, 0.35);
+    color: var(--accent);
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
     padding: 6px 14px;
     border-radius: 20px;
-    background: rgba(0, 60, 45, 0.3);
+    background: rgba(0, 0, 0, 0.3);
     white-space: nowrap;
   }
   .status .dot {
     width: 8px; height: 8px;
     border-radius: 50%;
-    background: #00ff9d;
-    box-shadow: 0 0 10px #00ff9d;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
     animation: blink 1.6s infinite;
   }
   @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
@@ -124,6 +202,7 @@
     align-items: stretch;
   }
   .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .full { grid-column: 1 / -1; }
 
   /* ===== СТАТИСТИКА ===== */
   .stat { padding: 14px 16px; }
@@ -134,25 +213,26 @@
     letter-spacing: 2px;
     text-transform: uppercase;
     margin-bottom: 8px;
-    color: #a9e9ff;
+    color: var(--text);
+    opacity: 0.85;
   }
   .stat-val {
-    color: var(--cyan);
-    text-shadow: 0 0 8px rgba(0, 229, 255, 0.7);
+    color: var(--accent);
+    text-shadow: 0 0 8px rgba(var(--accent-rgb), 0.7);
     font-variant-numeric: tabular-nums;
   }
   .bar {
     height: 8px;
-    background: rgba(0, 60, 100, 0.35);
-    border: 1px solid rgba(0, 229, 255, 0.2);
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(var(--accent-rgb), 0.2);
     border-radius: 4px;
     overflow: hidden;
   }
   .bar-fill {
     height: 100%;
     width: 0%;
-    background: linear-gradient(90deg, var(--blue), var(--cyan));
-    box-shadow: 0 0 12px rgba(0, 229, 255, 0.9);
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.9);
     transition: width 0.9s ease;
   }
 
@@ -164,31 +244,31 @@
     align-items: center;
     justify-content: center;
     padding: 30px 16px;
-    min-height: 380px;
+    min-height: 360px;
   }
   .core {
     position: relative;
-    width: min(300px, 70vw);
-    height: min(300px, 70vw);
+    width: min(280px, 65vw);
+    height: min(280px, 65vw);
     display: flex;
     align-items: center;
     justify-content: center;
     animation: pulse 2.4s ease-in-out infinite;
   }
   @keyframes pulse {
-    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 18px rgba(0, 200, 255, 0.55)); }
-    50%      { transform: scale(1.06); filter: drop-shadow(0 0 45px rgba(0, 220, 255, 0.95)); }
+    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 18px rgba(var(--accent-rgb), 0.55)); }
+    50%      { transform: scale(1.06); filter: drop-shadow(0 0 45px rgba(var(--accent-rgb), 0.95)); }
   }
   .ring {
     position: absolute;
     border-radius: 50%;
-    border: 1px solid rgba(0, 229, 255, 0.55);
+    border: 1px solid rgba(var(--accent-rgb), 0.55);
   }
   .ring.r1 {
     inset: 0;
     border-top-color: transparent;
     border-bottom-color: transparent;
-    box-shadow: 0 0 22px rgba(0, 200, 255, 0.35) inset;
+    box-shadow: inset 0 0 22px rgba(var(--accent-rgb), 0.35);
     animation: spin 9s linear infinite;
   }
   .ring.r2 {
@@ -208,10 +288,10 @@
     width: 38%;
     height: 38%;
     border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #bdf6ff, #00c2ff 45%, #004b8f 100%);
+    background: radial-gradient(circle at 35% 35%, #ffffff, var(--accent) 45%, var(--accent2) 100%);
     box-shadow:
-      0 0 30px rgba(0, 229, 255, 0.9),
-      0 0 70px rgba(0, 140, 255, 0.6),
+      0 0 30px rgba(var(--accent-rgb), 0.9),
+      0 0 70px rgba(var(--accent-rgb), 0.5),
       inset 0 0 18px rgba(255, 255, 255, 0.5);
     animation: heartbeat 2.4s ease-in-out infinite;
     z-index: 1;
@@ -221,12 +301,12 @@
     50%      { transform: scale(1.12); }
   }
   .core-label {
-    margin-top: 26px;
-    font-size: 12px;
-    letter-spacing: 6px;
+    margin-top: 24px;
+    font-size: 11px;
+    letter-spacing: 5px;
     text-transform: uppercase;
-    color: var(--cyan);
-    text-shadow: 0 0 10px rgba(0, 229, 255, 0.8);
+    color: var(--accent);
+    text-shadow: 0 0 10px rgba(var(--accent-rgb), 0.8);
     text-align: center;
   }
 
@@ -237,8 +317,8 @@
     font-size: 13px;
     letter-spacing: 1px;
     color: var(--text);
-    background: rgba(0, 90, 160, 0.18);
-    border: 1px solid rgba(0, 229, 255, 0.35);
+    background: rgba(var(--accent-rgb), 0.08);
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
     border-radius: 6px;
     padding: 11px 14px;
     cursor: pointer;
@@ -246,8 +326,8 @@
     transition: all 0.2s ease;
   }
   .qbtn:hover {
-    background: rgba(0, 170, 255, 0.28);
-    box-shadow: 0 0 16px rgba(0, 229, 255, 0.45);
+    background: rgba(var(--accent-rgb), 0.22);
+    box-shadow: 0 0 16px rgba(var(--accent-rgb), 0.45);
     transform: translateX(4px);
     color: #fff;
   }
@@ -262,8 +342,8 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    max-height: 55vh;
-    min-height: 220px;
+    max-height: 46vh;
+    min-height: 200px;
   }
   .msg {
     max-width: 85%;
@@ -277,15 +357,15 @@
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
   .msg.user {
     align-self: flex-end;
-    background: rgba(0, 120, 255, 0.22);
-    border: 1px solid rgba(0, 150, 255, 0.5);
-    box-shadow: 0 0 10px rgba(0, 140, 255, 0.25);
+    background: rgba(var(--accent-rgb), 0.14);
+    border: 1px solid rgba(var(--accent-rgb), 0.5);
+    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.25);
   }
   .msg.bot {
     align-self: flex-start;
-    background: rgba(0, 60, 70, 0.35);
-    border: 1px solid rgba(0, 229, 255, 0.45);
-    box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(var(--accent-rgb), 0.45);
+    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.2);
   }
   .msg .who {
     display: block;
@@ -294,55 +374,114 @@
     text-transform: uppercase;
     opacity: 0.7;
     margin-bottom: 3px;
+    color: var(--accent);
   }
   .chat-input {
     display: flex;
     gap: 8px;
     padding: 12px;
-    border-top: 1px solid rgba(0, 229, 255, 0.18);
+    border-top: 1px solid rgba(var(--accent-rgb), 0.18);
   }
   .chat-input input {
     flex: 1;
     min-width: 0;
     font: inherit;
     font-size: 14px;
-    color: #eaffff;
-    background: rgba(0, 30, 60, 0.55);
-    border: 1px solid rgba(0, 229, 255, 0.35);
+    color: #fff;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
     border-radius: 6px;
     padding: 11px 13px;
     outline: none;
     transition: box-shadow 0.2s;
   }
-  .chat-input input::placeholder { color: rgba(160, 220, 255, 0.45); }
-  .chat-input input:focus { box-shadow: 0 0 14px rgba(0, 229, 255, 0.4); }
-  .chat-input button {
+  .chat-input input::placeholder { color: rgba(200, 230, 255, 0.4); }
+  .chat-input input:focus { box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.4); }
+  .btn-primary {
     font: inherit;
     font-size: 13px;
     letter-spacing: 1px;
     color: #00131f;
     font-weight: 600;
-    background: linear-gradient(180deg, #4df3ff, #00b4e6);
+    background: linear-gradient(180deg, var(--accent), var(--accent2));
     border: none;
     border-radius: 6px;
     padding: 0 18px;
     cursor: pointer;
-    box-shadow: 0 0 14px rgba(0, 229, 255, 0.5);
+    box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.5);
     transition: all 0.2s;
   }
-  .chat-input button:hover { box-shadow: 0 0 24px rgba(0, 229, 255, 0.85); filter: brightness(1.1); }
-  .chat-input button:active { transform: scale(0.96); }
+  .btn-primary:hover { box-shadow: 0 0 24px rgba(var(--accent-rgb), 0.85); filter: brightness(1.1); }
+  .btn-primary:active { transform: scale(0.96); }
 
   #messages::-webkit-scrollbar { width: 6px; }
   #messages::-webkit-scrollbar-track { background: transparent; }
-  #messages::-webkit-scrollbar-thumb { background: rgba(0, 229, 255, 0.35); border-radius: 3px; }
+  #messages::-webkit-scrollbar-thumb { background: rgba(var(--accent-rgb), 0.35); border-radius: 3px; }
+
+  /* ===== ТЕРМИНАЛ ===== */
+  .terminal { display: flex; flex-direction: column; }
+  #termOut {
+    height: 220px;
+    overflow-y: auto;
+    padding: 12px 16px;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    background: rgba(0, 0, 0, 0.5);
+  }
+  .tline { white-space: pre-wrap; word-break: break-word; }
+  .tline.sys  { color: #8fb8cc; }
+  .tline.ok   { color: var(--accent); text-shadow: 0 0 6px rgba(var(--accent-rgb), 0.5); }
+  .tline.err  { color: #ff5577; }
+  .tline.user { color: #ffffff; }
+  .tline.user::before { content: "jarvis> "; color: var(--accent); }
+  #termOut::-webkit-scrollbar { width: 6px; }
+  #termOut::-webkit-scrollbar-track { background: transparent; }
+  #termOut::-webkit-scrollbar-thumb { background: rgba(var(--accent-rgb), 0.35); border-radius: 3px; }
+  .term-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-top: 1px solid rgba(var(--accent-rgb), 0.18);
+    background: rgba(0, 0, 0, 0.4);
+    font-family: "Consolas", "Courier New", monospace;
+  }
+  .term-prompt {
+    color: var(--accent);
+    font-size: 13px;
+    white-space: nowrap;
+    text-shadow: 0 0 6px rgba(var(--accent-rgb), 0.7);
+  }
+  .term-line input {
+    flex: 1;
+    min-width: 0;
+    font: inherit;
+    font-size: 13px;
+    color: #fff;
+    background: transparent;
+    border: none;
+    outline: none;
+  }
+
+  /* ===== ВСПЫШКА СКРИНШОТА ===== */
+  #flash {
+    position: fixed;
+    inset: 0;
+    background: #fff;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 999;
+  }
+  #flash.go { animation: flashAnim 0.45s ease-out; }
+  @keyframes flashAnim { 0% { opacity: 0.9; } 100% { opacity: 0; } }
 
   footer {
     text-align: center;
     font-size: 11px;
     letter-spacing: 2px;
-    color: rgba(140, 210, 255, 0.4);
-    padding: 8px 0 18px;
+    color: rgba(200, 230, 255, 0.35);
+    padding: 4px 0 18px;
   }
 
   /* ===== АДАПТИВНОСТЬ ===== */
@@ -353,22 +492,33 @@
   @media (max-width: 680px) {
     main { grid-template-columns: 1fr; padding: 12px; gap: 12px; }
     .col-center { order: -1; }
-    header { padding: 12px 14px; }
+    header { padding: 10px 12px; }
     .logo { letter-spacing: 2px; }
-    .status { padding: 5px 10px; letter-spacing: 1px; }
-    #messages { max-height: 45vh; }
-    .core-wrap { min-height: 300px; padding: 22px 10px; }
-    .chat-input button { padding: 0 14px; }
+    .controls { width: 100%; justify-content: space-between; }
+    #messages { max-height: 40vh; }
+    .core-wrap { min-height: 280px; padding: 20px 10px; }
+    #termOut { height: 180px; }
+    .btn-primary { padding: 0 14px; }
   }
 </style>
 </head>
-<body>
+<body data-theme="cyan">
 
 <canvas id="rain"></canvas>
+<div id="flash"></div>
 
 <header>
   <div class="logo">J.A.R.V.I.S. <span>— Windows Assistant</span></div>
-  <div class="status"><span class="dot"></span> Online</div>
+  <div class="controls">
+    <div class="themes" id="themeBtns" title="Смена темы">
+      <button class="swatch active" data-theme="cyan"   title="Cyan"></button>
+      <button class="swatch" data-theme="matrix" title="Matrix"></button>
+      <button class="swatch" data-theme="violet" title="Violet"></button>
+      <button class="swatch" data-theme="amber"  title="Amber"></button>
+    </div>
+    <button class="ctl-btn" id="rainToggle" title="Включение/выключение дождя">Дождь: ВКЛ</button>
+    <div class="status"><span class="dot"></span> Online</div>
+  </div>
 </header>
 
 <main>
@@ -393,9 +543,12 @@
     <section class="panel">
       <div class="panel-title">Quick Commands</div>
       <div class="quick">
-        <button class="qbtn" data-cmd="Открыть браузер">◈ Открыть браузер</button>
-        <button class="qbtn" data-cmd="Запустить игру">◈ Запустить игру</button>
-        <button class="qbtn" data-cmd="Скриншот">◈ Скриншот</button>
+        <button class="qbtn" data-action="browser">◈ Открыть браузер</button>
+        <button class="qbtn" data-action="game">◈ Запустить игру</button>
+        <button class="qbtn" data-action="screenshot">◈ Скриншот</button>
+        <button class="qbtn" data-action="scan">◈ Сканирование системы</button>
+        <button class="qbtn" data-action="theme">◈ Сменить тему</button>
+        <button class="qbtn" data-action="rain">◈ Переключить дождь</button>
       </div>
     </section>
   </div>
@@ -418,11 +571,23 @@
     <section class="panel chat">
       <div class="panel-title">Communication Channel</div>
       <div id="messages">
-        <div class="msg bot"><span class="who">J.A.R.V.I.S.</span>Все системы работают в штатном режиме. Слушаю вас.</div>
+        <div class="msg bot"><span class="who">J.A.R.V.I.S.</span>Все системы работают в штатном режиме. Слушаю вас. Для списка команд введите <b>help</b> в терминале ниже.</div>
       </div>
       <div class="chat-input">
         <input type="text" id="msgInput" placeholder="Введите команду..." autocomplete="off">
-        <button id="sendBtn">Отправить</button>
+        <button class="btn-primary" id="sendBtn">Отправить</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ТЕРМИНАЛ -->
+  <div class="full">
+    <section class="panel terminal">
+      <div class="panel-title">Terminal — введите help для списка команд</div>
+      <div id="termOut"></div>
+      <div class="term-line">
+        <span class="term-prompt">jarvis&gt;</span>
+        <input type="text" id="termInput" autocomplete="off" spellcheck="false" placeholder="команда...">
       </div>
     </section>
   </div>
@@ -431,12 +596,22 @@
 <footer>J.A.R.V.I.S. INTERFACE v2.6 // ALL SYSTEMS NOMINAL</footer>
 
 <script>
-/* ===== КИБЕР-ДОЖДЬ ===== */
+/* ================================================================
+   ГЛОБАЛЬНЫЙ ОБЪЕКТ
+================================================================ */
+var JARVIS = {};
+
+/* ================================================================
+   1. КИБЕР-ДОЖДЬ (включается/выключается, цвет = цвет темы)
+================================================================ */
 (function () {
   var canvas = document.getElementById('rain');
   var ctx = canvas.getContext('2d');
   var drops = [];
   var W, H;
+  var enabled = true;
+  var needsClear = false;
+  var rgb = '0, 229, 255';
 
   function resize() {
     W = canvas.width = window.innerWidth;
@@ -458,12 +633,18 @@
   }
 
   function draw() {
+    if (!enabled) {
+      if (!needsClear) { ctx.clearRect(0, 0, W, H); needsClear = true; }
+      requestAnimationFrame(draw);
+      return;
+    }
+    needsClear = false;
     ctx.clearRect(0, 0, W, H);
     for (var i = 0; i < drops.length; i++) {
       var d = drops[i];
       var grad = ctx.createLinearGradient(d.x, d.y - d.len, d.x, d.y);
-      grad.addColorStop(0, 'rgba(0, 229, 255, 0)');
-      grad.addColorStop(1, 'rgba(0, 229, 255, ' + d.alpha + ')');
+      grad.addColorStop(0, 'rgba(' + rgb + ', 0)');
+      grad.addColorStop(1, 'rgba(' + rgb + ', ' + d.alpha + ')');
       ctx.strokeStyle = grad;
       ctx.lineWidth = d.width;
       ctx.beginPath();
@@ -471,7 +652,7 @@
       ctx.lineTo(d.x, d.y);
       ctx.stroke();
 
-      ctx.fillStyle = 'rgba(190, 250, 255, ' + Math.min(1, d.alpha + 0.3) + ')';
+      ctx.fillStyle = 'rgba(' + rgb + ', ' + Math.min(1, d.alpha + 0.3) + ')';
       ctx.fillRect(d.x - d.width / 2, d.y - 2, d.width, 3);
 
       d.y += d.speed;
@@ -483,30 +664,96 @@
   window.addEventListener('resize', resize);
   resize();
   draw();
+
+  JARVIS.setRainColor = function (newRgb) { rgb = newRgb; };
+  JARVIS.rainOn = function () { enabled = true; };
+  JARVIS.rainOff = function () { enabled = false; };
+  JARVIS.rainIsOn = function () { return enabled; };
 })();
 
-/* ===== СТАТИСТИКА (каждые 2 секунды) ===== */
+/* ================================================================
+   2. ТЕМЫ
+================================================================ */
+var THEMES = ['cyan', 'matrix', 'violet', 'amber'];
+
+JARVIS.setTheme = function (id, silent) {
+  if (THEMES.indexOf(id) === -1) return false;
+  document.body.setAttribute('data-theme', id);
+  try { localStorage.setItem('jarvis-theme', id); } catch (e) {}
+
+  document.querySelectorAll('.swatch').forEach(function (s) {
+    s.classList.toggle('active', s.getAttribute('data-theme') === id);
+  });
+
+  var rgbStr = getComputedStyle(document.body).getPropertyValue('--accent-rgb').trim();
+  JARVIS.setRainColor(rgbStr);
+
+  if (!silent) termLog('Тема переключена: ' + id, 'ok');
+  return true;
+};
+
+JARVIS.nextTheme = function () {
+  var cur = document.body.getAttribute('data-theme');
+  var next = THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length];
+  JARVIS.setTheme(next, true);
+  return next;
+};
+
+document.getElementById('themeBtns').addEventListener('click', function (e) {
+  var btn = e.target.closest('.swatch');
+  if (btn) JARVIS.setTheme(btn.getAttribute('data-theme'));
+});
+
+/* ================================================================
+   3. ПЕРЕКЛЮЧАТЕЛЬ ДОЖДЯ
+================================================================ */
+var rainToggle = document.getElementById('rainToggle');
+
+function updateRainBtn() {
+  var on = JARVIS.rainIsOn();
+  rainToggle.textContent = 'Дождь: ' + (on ? 'ВКЛ' : 'ВЫКЛ');
+  rainToggle.classList.toggle('off', !on);
+}
+
+JARVIS.toggleRain = function () {
+  if (JARVIS.rainIsOn()) JARVIS.rainOff(); else JARVIS.rainOn();
+  updateRainBtn();
+  try { localStorage.setItem('jarvis-rain', JARVIS.rainIsOn() ? '1' : '0'); } catch (e) {}
+  return JARVIS.rainIsOn();
+};
+
+rainToggle.addEventListener('click', function () {
+  termLog('Кибер-дождь: ' + (JARVIS.rainIsOn() ? 'включён' : 'выключен'), 'ok');
+});
+
+/* ================================================================
+   4. СТАТИСТИКА (каждые 2 секунды)
+================================================================ */
 (function () {
+  var stats = { cpu: 0, ram: 0, net: 0 };
   function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
   function update() {
-    var cpu = rand(8, 92);
-    var ram = rand(25, 85);
-    var net = rand(1, 950);
+    stats.cpu = rand(8, 92);
+    stats.ram = rand(25, 85);
+    stats.net = rand(1, 950);
 
-    document.getElementById('cpuVal').textContent = cpu + '%';
-    document.getElementById('cpuBar').style.width = cpu + '%';
-    document.getElementById('ramVal').textContent = ram + '%';
-    document.getElementById('ramBar').style.width = ram + '%';
-    document.getElementById('netVal').textContent = net + ' Mb/s';
-    document.getElementById('netBar').style.width = Math.min(100, Math.round(net / 10)) + '%';
+    document.getElementById('cpuVal').textContent = stats.cpu + '%';
+    document.getElementById('cpuBar').style.width = stats.cpu + '%';
+    document.getElementById('ramVal').textContent = stats.ram + '%';
+    document.getElementById('ramBar').style.width = stats.ram + '%';
+    document.getElementById('netVal').textContent = stats.net + ' Mb/s';
+    document.getElementById('netBar').style.width = Math.min(100, Math.round(stats.net / 10)) + '%';
   }
 
   update();
   setInterval(update, 2000);
+  JARVIS.getStats = function () { return stats; };
 })();
 
-/* ===== ЧАТ ===== */
+/* ================================================================
+   5. ЧАТ
+================================================================ */
 (function () {
   var messages = document.getElementById('messages');
   var input = document.getElementById('msgInput');
@@ -524,7 +771,7 @@
     messages.scrollTop = messages.scrollHeight;
   }
 
-  function send(text) {
+  JARVIS.chatSend = function (text) {
     text = (text || '').trim();
     if (!text) return;
     addMsg(text, 'user');
@@ -532,16 +779,281 @@
     setTimeout(function () {
       addMsg('Команда принята. Выполняю анализ.', 'bot');
     }, 600);
+  };
+
+  sendBtn.addEventListener('click', function () { JARVIS.chatSend(input.value); });
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') JARVIS.chatSend(input.value);
+  });
+})();
+
+/* ================================================================
+   6. ТЕРМИНАЛ
+================================================================ */
+var termOut = document.getElementById('termOut');
+var termInput = document.getElementById('termInput');
+
+function termLog(text, cls) {
+  var line = document.createElement('div');
+  line.className = 'tline ' + (cls || 'sys');
+  line.textContent = text;
+  termOut.appendChild(line);
+  termOut.scrollTop = termOut.scrollHeight;
+}
+
+/* --- игра "угадай число" --- */
+var game = null;
+
+function startGame() {
+  game = { number: Math.floor(Math.random() * 100) + 1, tries: 0 };
+}
+
+function gameStep(input) {
+  var n = parseInt(input, 10);
+  if (isNaN(n)) { termLog('Введи целое число от 1 до 100 (или exit для выхода)', 'err'); return; }
+  if (n < 1 || n > 100) { termLog('Число вне диапазона 1..100', 'err'); return; }
+  game.tries++;
+  if (n === game.number) {
+    termLog('ПОБЕДА! Число ' + game.number + ', попыток: ' + game.tries, 'ok');
+    game = null;
+  } else if (n < game.number) {
+    termLog('Больше! Попытка ' + game.tries, 'sys');
+  } else {
+    termLog('Меньше! Попытка ' + game.tries, 'sys');
+  }
+}
+
+/* --- анимированное сканирование --- */
+function runScan() {
+  var steps = [
+    ['Сканирование ядра [##.........] 20%', 'sys'],
+    ['Сканирование ядра [#####......] 50%', 'sys'],
+    ['Сканирование ядра [########...] 80%', 'sys'],
+    ['Сканирование ядра [##########] 100%', 'sys'],
+    ['Угроз не обнаружено. Система чиста.', 'ok'],
+    ['Проверка сети... пинг 12 мс, потерь 0%', 'ok']
+  ];
+  steps.forEach(function (s, i) {
+    setTimeout(function () { termLog(s[0], s[1]); }, i * 450);
+  });
+}
+
+/* --- справка --- */
+function showHelp() {
+  termLog('Доступные команды:', 'ok');
+  termLog('  help                 — этот список');
+  termLog('  theme <имя>          — смена темы: cyan | matrix | violet | amber');
+  termLog('  themes               — список тем');
+  termLog('  next                 — следующая тема');
+  termLog('  rain [on|off]        — вкл/выкл кибер-дождь');
+  termLog('  stats                — CPU / RAM / Network');
+  termLog('  scan                 — сканирование системы');
+  termLog('  game                 — игра "угадай число"');
+  termLog('  open <url>           — открыть сайт в новой вкладке');
+  termLog('  time | date          — текущее время / дата');
+  termLog('  echo <текст>         — повторить текст');
+  termLog('  screenshot           — демо-скриншот');
+  termLog('  about                — информация о системе');
+  termLog('  clear                — очистить терминал');
+}
+
+/* --- обработка команды --- */
+function runCommand(raw) {
+  raw = (raw || '').trim();
+  if (!raw) return;
+
+  termLog(raw, 'user');
+  var low = raw.toLowerCase();
+
+  /* режим игры: ввод считается попыткой */
+  if (game) {
+    if (low === 'exit' || low === 'quit') {
+      game = null;
+      termLog('Игра завершена.', 'sys');
+      return;
+    }
+    gameStep(raw);
+    return;
   }
 
-  sendBtn.addEventListener('click', function () { send(input.value); });
-  input.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') send(input.value);
-  });
+  var parts = raw.split(/\s+/);
+  var cmd = parts[0].toLowerCase();
+  var args = parts.slice(1).join(' ');
+
+  switch (cmd) {
+    case 'help':
+    case '?':
+      showHelp();
+      break;
+
+    case 'clear':
+    case 'cls':
+      termOut.innerHTML = '';
+      break;
+
+    case 'theme':
+      if (!args) { termLog('Укажи тему: theme cyan | matrix | violet | amber', 'err'); break; }
+      if (!JARVIS.setTheme(args.toLowerCase()))
+        termLog('Неизвестная тема: ' + args + '. Доступны: ' + THEMES.join(', '), 'err');
+      break;
+
+    case 'themes':
+      termLog('Темы: ' + THEMES.join(' | ') + '  (текущая: ' + document.body.getAttribute('data-theme') + ')', 'ok');
+      break;
+
+    case 'next':
+      termLog('Тема переключена: ' + JARVIS.nextTheme(), 'ok');
+      break;
+
+    case 'rain': {
+      var a = args.toLowerCase();
+      var state = JARVIS.rainIsOn();
+      if (a === 'on' || a === 'вкл') { if (!state) JARVIS.toggleRain(); }
+      else if (a === 'off' || a === 'выкл') { if (state) JARVIS.toggleRain(); }
+      else { if (state) JARVIS.toggleRain(); else JARVIS.toggleRain(); }
+      termLog('Кибер-дождь: ' + (JARVIS.rainIsOn() ? 'включён' : 'выключен'), 'ok');
+      break;
+    }
+
+    case 'stats': {
+      var s = JARVIS.getStats();
+      termLog('CPU: ' + s.cpu + '%  |  RAM: ' + s.ram + '%  |  Network: ' + s.net + ' Mb/s', 'ok');
+      break;
+    }
+
+    case 'scan':
+      runScan();
+      break;
+
+    case 'game':
+      startGame();
+      termLog('Игра: я загадал число от 1 до 100. Введи число.', 'ok');
+      break;
+
+    case 'open': {
+      if (!args) { termLog('Пример: open https://github.com', 'err'); break; }
+      var url = /^https?:\/\//i.test(args) ? args : 'https://' + args;
+      window.open(url, '_blank', 'noopener');
+      termLog('Открываю: ' + url, 'ok');
+      break;
+    }
+
+    case 'time':
+      termLog('Текущее время: ' + new Date().toLocaleTimeString('ru-RU'), 'ok');
+      break;
+
+    case 'date':
+      termLog('Сегодня: ' + new Date().toLocaleDateString('ru-RU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }), 'ok');
+      break;
+
+    case 'echo':
+      termLog(args || '', 'sys');
+      break;
+
+    case 'screenshot': {
+      var flash = document.getElementById('flash');
+      flash.classList.remove('go');
+      void flash.offsetWidth;
+      flash.classList.add('go');
+      termLog('Скриншот сохранён: C:\\Screenshots\\screenshot_' + Date.now() + '.png (демо-режим)', 'ok');
+      break;
+    }
+
+    case 'about':
+      termLog('J.A.R.V.I.S. Interface v2.6 — HUD-интерфейс для Windows.', 'ok');
+      termLog('Стек: чистый HTML + CSS + JavaScript, без зависимостей.');
+      termLog('Тема: ' + document.body.getAttribute('data-theme') + ' | Дождь: ' + (JARVIS.rainIsOn() ? 'вкл' : 'выкл'));
+      break;
+
+    case 'whoami':
+      termLog('user@windows — вы подключены к J.A.R.V.I.S.', 'ok');
+      break;
+
+    case 'sudo':
+      termLog('Доступ разрешён. Вы и так главный здесь.', 'ok');
+      break;
+
+    default:
+      termLog('Неизвестная команда: ' + cmd + '. Введи help.', 'err');
+  }
+}
+
+JARVIS.runCommand = runCommand;
+
+termInput.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') {
+    var v = termInput.value;
+    termInput.value = '';
+    runCommand(v);
+  }
+});
+
+/* ================================================================
+   7. БЫСТРЫЕ КОМАНДЫ (реальные действия)
+================================================================ */
+(function () {
+  var ACTIONS = {
+    browser: function () {
+      window.open('https://www.google.com', '_blank', 'noopener');
+      termLog('Запуск браузера -> https://www.google.com', 'ok');
+      JARVIS.chatSend('Открываю браузер.');
+    },
+    game: function () {
+      startGame();
+      termLog('Игра: я загадал число от 1 до 100. Введи число.', 'ok');
+      JARVIS.chatSend('Игра запущена в терминале.');
+      termInput.focus();
+    },
+    screenshot: function () {
+      var flash = document.getElementById('flash');
+      flash.classList.remove('go');
+      void flash.offsetWidth;
+      flash.classList.add('go');
+      var name = 'screenshot_' + Date.now() + '.png';
+      termLog('Скриншот сохранён: C:\\Screenshots\\' + name + ' (демо-режим)', 'ok');
+      JARVIS.chatSend('Скриншот выполнен: ' + name);
+    },
+    scan: function () {
+      runScan();
+      JARVIS.chatSend('Запускаю сканирование системы.');
+    },
+    theme: function () {
+      var t = JARVIS.nextTheme();
+      termLog('Тема переключена: ' + t, 'ok');
+      JARVIS.chatSend('Тема изменена: ' + t + '.');
+    },
+    rain: function () {
+      JARVIS.toggleRain();
+      termLog('Кибер-дождь: ' + (JARVIS.rainIsOn() ? 'включён' : 'выключен'), 'ok');
+      JARVIS.chatSend('Кибер-дождь ' + (JARVIS.rainIsOn() ? 'включён' : 'выключен') + '.');
+    }
+  };
 
   document.querySelectorAll('.qbtn').forEach(function (btn) {
-    btn.addEventListener('click', function () { send(btn.getAttribute('data-cmd')); });
+    btn.addEventListener('click', function () {
+      var fn = ACTIONS[btn.getAttribute('data-action')];
+      if (fn) fn();
+    });
   });
+})();
+
+/* ================================================================
+   8. ИНИЦИАЛИЗАЦИЯ
+================================================================ */
+(function init() {
+  var savedTheme = null, savedRain = null;
+  try {
+    savedTheme = localStorage.getItem('jarvis-theme');
+    savedRain = localStorage.getItem('jarvis-rain');
+  } catch (e) {}
+
+  JARVIS.setTheme(savedTheme || 'cyan', true);
+  if (savedRain === '0') JARVIS.rainOff();
+  updateRainBtn();
+
+  termLog('J.A.R.V.I.S. Terminal v2.6 — инициализация завершена.', 'ok');
+  termLog('Введи help, чтобы увидеть список команд.', 'sys');
+  termLog('');
 })();
 </script>
 </body>
