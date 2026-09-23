@@ -21,7 +21,7 @@
 | 14 | Игры: Memory + Snake внутри вкладки «Игра», серверный лидерборд Neon Runner | DONE (game-switch 3 игры, Memory 4×4, Snake canvas, scoreStore + GET/POST /api/scores top-10, пост счёта с game over, roadmap ревизия) |
 | 15 | PWA: manifest.json, service worker, SVG-иконка, установка на телефон | DONE (manifest+icon.svg+sw.js cache-first/offline, whitelist-роуты статики, регистрация в init) |
 | 16 | PIN-код на API: /api/auth, заглушка-оверлей, заголовок x-jarvis-pin через переопределённый fetch | DONE (PIN gate на /api/* кроме auth, оверлей z-400 + ввод Enter, sessionStorage jarvis-pin, дубли после случайных повторов вычищены) |
-| 17 | (бонус) ИИ-чат: бесплатная модель с личностью Джарвиса отвечает на обычные вопросы | DONE (aiBrain → Pollinations keyless, personality system prompt, история 8 сообщений + память, фолбэк на FALLBACKS при таймауте, typing-индикатор; JARVIS_AI=off — выкл.) |
+| 17 | (бонус) ИИ-чат: бесплатная модель с личностью Джарвиса отвечает на обычные вопросы | DONE (aiBrain: сначала Pollinations keyless, затем **9router/omniroute localhost:20128**, ключ+URL+модели в gitignored `secrets.json`, модели с префиксом `9router-my/oc/…` (mimo-v2.6 основная, muse запасная), пауза по `reset_seconds` ≤18с, история 8 сообщений + память, фолбэк на FALLBACKS; JARVIS_AI=off — выкл.) |
 
 ## Ключевые решения
 - fetch-обёртка для PIN (п.16) — переопределить window.fetch один раз, все существующие вызовы `/api/*` автоматически получают заголовок.
@@ -29,3 +29,17 @@
 - Плагины (п.12): `plugins/*.js` → `module.exports = {name, commands:[{cmd, desc}], run(cmd,args)}`; терминал вызывает до локальных команд.
 - Игры (п.14): внутри вкладки «Игра» мини-переключатель Neon Runner | Memory | Snake; лидерборд → GET/POST /api/scores.
 - Бэкенд: server.js (express, port 3000), routes/{chat,system,commands,terminal}.js, services/{jarvisBrain,stateStore,systemMonitor}.js.
+
+## ИИ-фичи (помечены бейджом «ИИ» в интерфейсе)
+
+| Фича | Где в UI / API | Как работает |
+|------|----------------|--------------|
+| **ИИ-чат** | панель `Communication Channel` (бейдж ИИ), `POST /api/chat` (бейдж ИИ), модуль NEURAL CHAT | `routes/chat.js` → `aiBrain.ask()` → 9router `127.0.0.1:20128/v1`, модель `9router-my/oc/mimo-v2.6-flash-free` (бэкап `muse-spark-1.3`), системный промпт-личность, история 8 сообщений, память пользователя |
+| **Голос → ИИ** | кнопка `СЛУШАТЬ` (title помечен) | Web Speech API: речь → `JARVIS.chatSend` → тот же ИИ-чат |
+| **Wake-word «Джарвис»** | режим слушания (title помечен) | распознанная фраза после «джарвис…» → `chatSend` → ИИ-чат |
+| **Текстовые быстрые команды** | кнопки с чипом `ИИ` | `q.text` → `chatSend` → ИИ-чат (кнопки с `action` — локальные, без ИИ) |
+| **Озвучка ИИ-ответов** | `Голос: ВКЛ` (title помечен) | `speechSynthesis` произносит reply, полученный от ИИ |
+
+**Не ИИ (помечено честно):** `AI News` — лента X/Hacker News/DEV.to (бейдж «лента · не ИИ»); погода — Open-Meteo, валюты — НБК; память («что ты помнишь»), команды-действия, терминал — правила `jarvisBrain`/заготовленные ответы; распознавание и синтез речи — системный Web Speech API, не модель.
+
+**Секреты:** `secrets.json` (URL/ключ/модели) — в `.gitignore`, в git не попадает; `server.js` подгружает его до require роутов.

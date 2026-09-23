@@ -742,6 +742,10 @@
   .badge.plan { color: #ffd166; border: 1px solid rgba(255, 209, 102, 0.5); }
   .badge.wip  { color: var(--accent); border: 1px solid rgba(var(--accent-rgb), 0.5); }
   .badge.done { color: #7dffcb; border: 1px solid rgba(0, 255, 155, 0.5); }
+  /* пометка «это ИИ» — фиолетовый неон */
+  .badge.ai { color: #c39bff; border: 1px solid rgba(195, 155, 255, 0.55); box-shadow: 0 0 8px rgba(195, 155, 255, 0.22); }
+  /* чип на кнопках быстрых команд, уходящих в ИИ-чат */
+  .q-ai { margin-left: 6px; font-size: 9px; padding: 1px 5px; border-radius: 8px; color: #c39bff; border: 1px solid rgba(195, 155, 255, 0.5); vertical-align: middle; }
 
   /* ===== ТАЙМЕРЫ И НАПОМИНАНИЯ ===== */
   .timer-form { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
@@ -1368,8 +1372,8 @@
       <button class="swatch" data-theme="amber"  title="Amber"></button>
     </div>
     <button class="ctl-btn" id="rainToggle" title="Включение/выключение дождя">Дождь: ВКЛ</button>
-    <button class="ctl-btn" id="voiceToggle" title="Голос Джарвиса (синтез речи)">Голос: ВЫКЛ</button>
-    <button class="ctl-btn" id="micToggle" title="Скажите команду голосом (распознавание речи)">СЛУШАТЬ</button>
+    <button class="ctl-btn" id="voiceToggle" title="Голос Джарвиса: озвучка ответов, включая ИИ-реплики (speechSynthesis)">Голос: ВЫКЛ</button>
+    <button class="ctl-btn" id="micToggle" title="Голос → ИИ-чат: речь превращается в запрос к ИИ-модели (Web Speech)">СЛУШАТЬ</button>
     <button class="ctl-btn" id="wakeToggle" title="Постоянное слушание: говорите «Джарвис, ...»">ДЖАРВИС-РЕЖИМ</button>
     <div class="wx-chip" id="wxChip" title="Погода в Астане — клик, чтобы открыть подробности" style="display:none">
       <span class="wx-chip-ico" id="wxChipIco">—</span>
@@ -1431,7 +1435,7 @@
   <!-- ПРАВАЯ КОЛОНКА: ЧАТ -->
   <div class="col">
     <section class="panel chat">
-      <div class="panel-title">Communication Channel</div>
+      <div class="panel-title">Communication Channel <span class="badge ai" title="Свободные вопросы уходят в ИИ-модель (9router)">ИИ</span></div>
       <div class="chat-tools">
         <input type="text" id="msgSearch" placeholder="🔍 поиск по истории..." autocomplete="off">
         <button class="ctl-btn" id="chatClear" title="Очистить историю чата">✕ Очистить</button>
@@ -1465,7 +1469,7 @@
         <div id="weatherBox"><div class="load-line">Загрузка погоды...</div></div>
       </section>
       <section class="panel">
-        <div class="panel-title">AI News</div>
+        <div class="panel-title">AI News <span class="badge plan" title="Обычная лента X / Hacker News / DEV.to — генеративный ИИ тут не участвует">лента · не ИИ</span></div>
         <div id="newsBox" class="news-box"><div class="load-line">Загрузка новостей об ИИ...</div></div>
       </section>
     </div>
@@ -1488,13 +1492,14 @@
       <div class="tab-content active" id="tab-about">
         <h3>J.A.R.V.I.S. — Windows Assistant</h3>
         <p>Голографический HUD-интерфейс персонального помощника в духе Джарвиса из «Железного человека»: кибер-дождь, пульсирующее ядро, живая статистика системы, чат с разбором команд и терминал. Фронтенд — чистый HTML/CSS/JS, бэкенд — Node.js + Express, доступ из интернета — через Cloudflare Tunnel.</p>
-        <p>Все действия — смена темы, переключение дождя, быстрые команды и журнал — синхронизируются с сервером в реальном времени.</p>
+        <p>Все действия — смена темы, переключение дождя, быстрые команды и журнал — синхронизируются с сервером в реальном времени. Функции, где отвечает настоящий ИИ (модель через 9router), помечены бейджом <span class="badge ai">ИИ</span>.</p>
         <div class="info-grid">
           <div class="info-card"><div class="k">Версия</div><div class="v">v2.6</div></div>
           <div class="info-card"><div class="k">Frontend</div><div class="v">HTML / CSS / JS</div></div>
           <div class="info-card"><div class="k">Backend</div><div class="v">Node.js + Express</div></div>
           <div class="info-card"><div class="k">Порт</div><div class="v">localhost:3000</div></div>
           <div class="info-card"><div class="k">Туннель</div><div class="v">trycloudflare.com</div></div>
+          <div class="info-card"><div class="k">ИИ-модель</div><div class="v" title="Локальный роутер 9router/omniroute, основная mimo-v2.6-flash-free">9router · mimo-v2.6</div></div>
           <div class="info-card"><div class="k">Статус</div><div class="v">Online</div></div>
         </div>
       </div>
@@ -1511,8 +1516,8 @@
             <p>Неоновый дождь на Canvas: градиентные капли с хвостами, позади всех панелей (z-index: -1). Цвет следует за темой, включается/выключается кнопкой и командой rain.</p>
           </div>
           <div class="module">
-            <h4>NEURAL CHAT</h4>
-            <p>Окно общения с Джарвисом. Команды разбирает серверный jarvisBrain: темы, дождь, help, браузер, игра, скриншот, сканирование — действия применяются и на клиенте, и в состоянии сервера.</p>
+            <h4>NEURAL CHAT <span class="badge ai">ИИ</span></h4>
+            <p>Окно общения с Джарвисом. Команды-действия разбирает серверный jarvisBrain (правила), а свободные вопросы уходят в ИИ-модель через 9router: персональность, шутки, объяснения, контекст истории и памяти.</p>
           </div>
           <div class="module">
             <h4>TERMINAL</h4>
@@ -1532,7 +1537,7 @@
       <div class="tab-content" id="tab-api">
         <h3>REST API</h3>
         <div class="api-list">
-          <div class="api-item"><span class="api-method">POST</span><span class="api-path">/api/chat</span><span class="api-desc">тело { message } → { reply, action } — ответ Джарвиса и действие (тема/дождь)</span></div>
+          <div class="api-item"><span class="api-method">POST</span><span class="api-path">/api/chat</span><span class="badge ai">ИИ</span><span class="api-desc">тело { message, history } → { reply, action } — ИИ-ответ (9router) или действие (тема/дождь)</span></div>
           <div class="api-item"><span class="api-method get">GET</span><span class="api-path">/api/system</span><span class="api-desc">→ { cpu, ram, network } — метрики каждые 2 сек</span></div>
           <div class="api-item"><span class="api-method">POST</span><span class="api-path">/api/command</span><span class="api-desc">тело { action } → { status, message } — open_browser | launch_game | screenshot | system_scan</span></div>
           <div class="api-item"><span class="api-method">POST</span><span class="api-path">/api/terminal</span><span class="api-desc">тело { command } → { output, clear } — help, ping, theme, rain, status, clear</span></div>
@@ -1637,7 +1642,7 @@
           <div class="road-item"><span>Игровой зал: Memory, Snake и серверная таблица рекордов</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>PWA: manifest, service worker, офлайн-режим</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>PIN-доступ к API</span><span class="badge done">Готово</span></div>
-          <div class="road-item"><span>ИИ-чат: бесплатная модель с личностью Джарвиса (Pollinations)</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>ИИ-чат: личность Джарвиса на локальной LLM (9router, mimo-v2.6 + запасная muse)</span><span class="badge ai">ИИ</span><span class="badge done">Готово</span></div>
         </div>
       </div>
     </section>
@@ -2909,8 +2914,9 @@ termInput.addEventListener('keydown', function (e) {
     if (!quickBox) return;
     var html = '';
     quickList.forEach(function (q, i) {
-      html += '<button class="qbtn" data-i="' + i + '" title="' + esc(q.text || q.action || '') + '">' +
-              (editMode ? '<span class="q-x">✕</span>' : '◈ ') + esc(q.label) + '</button>';
+      html += '<button class="qbtn" data-i="' + i + '" title="' + esc(q.text || q.action || '') + (q.text ? ' — уйдёт в ИИ-чат' : '') + '">' +
+              (editMode ? '<span class="q-x">✕</span>' : '◈ ') + esc(q.label) +
+              (q.text && !editMode ? '<span class="q-ai">ИИ</span>' : '') + '</button>';
     });
     if (editMode) html += '<button class="qbtn q-add" data-add="1">＋ Добавить команду</button>';
     quickBox.innerHTML = html;
