@@ -28,8 +28,8 @@ async function getJson(url) {
   return JSON.parse(txt);
 }
 
-// JSON-POST (для ИИ и API)
-function postJson(url, obj) {
+// JSON-POST (для ИИ и API); headers — доп. заголовки (например Authorization)
+function postJson(url, obj, headers) {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify(obj);
     const lib = url.startsWith('http:') ? http : https;
@@ -37,7 +37,10 @@ function postJson(url, obj) {
       url,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+        headers: Object.assign(
+          { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+          headers || {}
+        ),
         timeout: 30000 // reasoning-модели на холодном стартe живут до ~25с
       },
       (res) => {
@@ -45,7 +48,10 @@ function postJson(url, obj) {
         res.setEncoding('utf8');
         res.on('data', (c) => (data += c));
         res.on('end', () => {
-          if (res.statusCode >= 400) return reject(new Error('HTTP ' + res.statusCode));
+          if (res.statusCode >= 400) {
+            // тело ошибки важно: роутер отдаёт там cooldown/reset_seconds
+            return reject(new Error('HTTP ' + res.statusCode + ' ' + String(data).slice(0, 300)));
+          }
           try {
             resolve(JSON.parse(data));
           } catch (e) {

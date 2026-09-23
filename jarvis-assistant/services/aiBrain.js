@@ -1,11 +1,12 @@
-// П.17: бесплатная ИИ-модель с личностью Джарвиса.
-// Pollinations.ai — keyless, OpenAI-совместимый /openai-эндпоинт.
-// ВАЖНО: для anonymous-уровня там ДОСТУПНА ОДНА модель (openai-fast, alias 'openai'),
-// поэтому при 429 бессмысленно менять модель — ждём и повторяем ту же.
-// Переключение: JARVIS_AI_URL / JARVIS_AI_MODEL / JARVIS_AI_MODEL2, выключить: JARVIS_AI=off
+// П.17: ИИ с личностью Джарвиса, OpenAI-совместимый эндпоинт.
+// По умолчанию — локальный 9router/omniroute (localhost:20128) из secrets.json
+// (URL + ключ + модель); без secrets.json падает на keyless Pollinations.ai.
+// Переключение: JARVIS_AI_URL / JARVIS_AI_KEY / JARVIS_AI_MODEL / JARVIS_AI_MODEL2,
+// выключить: JARVIS_AI=off
 const { postJson } = require('./httpGet');
 
 const AI_URL = process.env.JARVIS_AI_URL || 'https://text.pollinations.ai/openai';
+const AI_KEY = process.env.JARVIS_AI_KEY || ''; // пусто → без заголовка Authorization
 const MODEL = process.env.JARVIS_AI_MODEL || 'openai';
 // запасная модель — только если задана явно (по умолчанию та же → шаг пропускается)
 const BACKUP_MODEL = process.env.JARVIS_AI_MODEL2 || MODEL;
@@ -59,12 +60,16 @@ function buildMessages(message, history, memory) {
 // один запрос → {ok:текст} | {empty:true} | {err:...}
 async function attempt(modelName, msgs) {
   try {
-    const data = await postJson(AI_URL, {
-      model: modelName,
-      messages: msgs,
-      temperature: 0.85,
-      max_tokens: 2000 // reasoning-модели жрут бюджет на «размышления» — 400 не хватало
-    });
+    const data = await postJson(
+      AI_URL,
+      {
+        model: modelName,
+        messages: msgs,
+        temperature: 0.85,
+        max_tokens: 2000 // reasoning-модели жрут бюджет на «размышления» — 400 не хватало
+      },
+      AI_KEY ? { Authorization: 'Bearer ' + AI_KEY } : undefined
+    );
     const content =
       data &&
       data.choices &&
@@ -72,7 +77,9 @@ async function attempt(modelName, msgs) {
       data.choices[0].message &&
       data.choices[0].message.content;
     if (typeof content === 'string' && content.trim()) {
-      return { ok: content.trim().slice(0, 1200) };
+      const text = content.trim().slice(0, 1200);
+      console.log(`ИИ (${modelName}) ответил: ` + text.slice(0, 90));
+      return { ok: text };
     }
     return { empty: true };
   } catch (e) {
@@ -80,15 +87,31 @@ async function attempt(modelName, msgs) {
   }
 }
 
-// ядро: основная модель → (429|пусто) пауза и повтор → опциональный бэкап
+// ожидание при cooldown: берём reset_seconds из тела ошибки, но не дольше 18с
+// (общий дедлайн чата — 32с), иначе просто 3с
+function cooldownWait(err) {
+  const m = /reset_seconds[":\s]+(\d+)/.exec(err || '');
+  if (m) {
+    const sec = parseInt(m[1], 10);
+    if (sec > 0) return Math.min(sec, 18) * 1000 + 500;
+  }
+  return RATE_WAIT;
+}
+
+// ядро: основная → (429/cooldown|пусто) пауза и повтор → запасная модель
 async function core(message, history, memory) {
   const msgs = buildMessages(message, history, memory);
 
   let res = await attempt(MODEL, msgs);
   if (res.ok) return res.ok;
 
-  if (res.err && /429/.test(res.err)) {
-    console.log('ИИ: HTTP 429 (rate-limit) — пауза 3с, повторяю ' + MODEL);
+  if (res.err && /429|cooldown/.test(res.err)) {
+    const wait = cooldownWait(res.err);
+    console.log(`ИИ: cooldown (${MODEL}) — пауза ${Math.round(wait / 1000)}с, повторяю`);
+    await sleep(wait);
+    res = await attempt(MODEL, msgs);
+    if (res.ok) return res.ok;
+  } else if (res.err && /429/.test(res.err)) {
     await sleep(RATE_WAIT);
     res = await attempt(MODEL, msgs);
     if (res.ok) return res.ok;
@@ -101,6 +124,7 @@ async function core(message, history, memory) {
   if (BACKUP_MODEL && BACKUP_MODEL !== MODEL) {
     const b = await attempt(BACKUP_MODEL, msgs);
     if (b.ok) return b.ok;
+    console.log(`ИИ: запасная ${BACKUP_MODEL} тоже молчит (${b.err || 'пусто'})`);
   }
 
   console.log(`ИИ: нет ответа (${res.err || 'пусто'}) — локальный фолбэк`);

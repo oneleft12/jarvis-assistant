@@ -3,6 +3,15 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 
+// Секреты (ключ ИИ) из gitignored secrets.json — ДО require роутов,
+// потому что aiBrain читает переменные окружения на момент загрузки модуля
+try {
+  const secrets = require('./secrets.json');
+  Object.keys(secrets).forEach((k) => {
+    if (!(k in process.env)) process.env[k] = String(secrets[k]);
+  });
+} catch (e) { /* secrets.json нет — работаем на дефолтах (Pollinations) */ }
+
 const chatRoutes = require('./routes/chat');
 const systemRoutes = require('./routes/system');
 const commandRoutes = require('./routes/commands');
