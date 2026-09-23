@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>J.A.R.V.I.S. — Windows Assistant</title>
+<meta name="theme-color" content="#00e5ff">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -269,21 +273,20 @@
     border-top-color: transparent;
     border-bottom-color: transparent;
     box-shadow: inset 0 0 22px rgba(var(--accent-rgb), 0.35);
-    animation: spin 9s linear infinite;
+    will-change: transform;
   }
   .ring.r2 {
     inset: 14%;
     border-left-color: transparent;
     border-right-color: transparent;
-    animation: spin 6s linear infinite reverse;
+    will-change: transform;
   }
   .ring.r3 {
     inset: 28%;
     border-style: dashed;
     opacity: 0.7;
-    animation: spin 14s linear infinite;
+    will-change: transform;
   }
-  @keyframes spin { to { transform: rotate(360deg); } }
   .core-inner {
     width: 38%;
     height: 38%;
@@ -308,6 +311,86 @@
     color: var(--accent);
     text-shadow: 0 0 10px rgba(var(--accent-rgb), 0.8);
     text-align: center;
+  }
+  .core-hint {
+    margin-top: 8px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text);
+    opacity: 0.4;
+    text-align: center;
+  }
+
+  /* --- интерактив ядра --- */
+  .core-stage {
+    display: flex;
+    transition: transform 0.25s ease-out;
+    will-change: transform;
+  }
+  .core { cursor: pointer; user-select: none; }
+
+  /* наведение — свечение ярче (скорость колец разгоняется плавно в JS) */
+  .core:hover .core-inner {
+    box-shadow:
+      0 0 45px rgba(var(--accent-rgb), 1),
+      0 0 90px rgba(var(--accent-rgb), 0.7),
+      inset 0 0 22px rgba(255, 255, 255, 0.7);
+  }
+
+  /* режим ускорения после клика */
+  .core.boost { animation-duration: 0.9s; }
+  .core.boost .core-inner { animation-duration: 0.6s; }
+
+  /* ударная волна от клика */
+  .shockwave {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid rgba(var(--accent-rgb), 0.95);
+    box-shadow: 0 0 25px rgba(var(--accent-rgb), 0.8);
+    animation: shock 0.8s ease-out forwards;
+    pointer-events: none;
+  }
+  @keyframes shock {
+    from { transform: scale(0.55); opacity: 1; }
+    to   { transform: scale(1.7);  opacity: 0; }
+  }
+
+  /* --- перегрузка и взрыв ядра --- */
+  .core.overload { animation: shake 0.12s linear infinite; }
+  .core.overload .core-inner {
+    background: radial-gradient(circle at 35% 35%, #ffffff, #ff5a3c 55%, #ff2050 100%);
+    box-shadow:
+      0 0 60px rgba(255, 70, 60, 1),
+      0 0 120px rgba(255, 40, 80, 0.8),
+      inset 0 0 25px #fff;
+    animation: heartbeat 0.25s ease-in-out infinite;
+  }
+  .core.overload .ring { border-color: rgba(255, 80, 80, 0.9); }
+  @keyframes shake {
+    0%, 100% { transform: translate(0, 0); }
+    25%      { transform: translate(-5px, 3px); }
+    50%      { transform: translate(5px, -3px); }
+    75%      { transform: translate(-4px, -4px); }
+  }
+  .explosion {
+    position: absolute;
+    inset: -90%;
+    border-radius: 50%;
+    background: radial-gradient(circle,
+      #ffffff 0%,
+      #ffe08a 15%,
+      #ff8a3c 35%,
+      rgba(255, 60, 60, 0.8) 55%,
+      rgba(255, 30, 30, 0.45) 70%,
+      transparent 80%);
+    animation: explode 2.2s ease-out forwards;
+    pointer-events: none;
+    z-index: 5;
+  }
+  @keyframes explode {
+    from { transform: scale(0.2); opacity: 1; }
+    to   { transform: scale(4.5); opacity: 0; }
   }
 
   /* ===== БЫСТРЫЕ КОМАНДЫ ===== */
@@ -376,6 +459,25 @@
     margin-bottom: 3px;
     color: var(--accent);
   }
+  .chat-tools {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .chat-tools input {
+    flex: 1;
+    min-width: 0;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(var(--accent-rgb), 0.25);
+    border-radius: 4px;
+    padding: 5px 8px;
+    color: var(--text, #cfe9f7);
+    font-size: 11px;
+    outline: none;
+  }
+  .chat-tools input:focus { border-color: rgba(var(--accent-rgb), 0.7); }
+  .chat-tools .ctl-btn { font-size: 10px; padding: 5px 8px; }
+
   .chat-input {
     display: flex;
     gap: 8px;
@@ -476,6 +578,735 @@
   #flash.go { animation: flashAnim 0.45s ease-out; }
   @keyframes flashAnim { 0% { opacity: 0.9; } 100% { opacity: 0; } }
 
+  /* ===== ВКЛАДКИ ВНИЗУ САЙТА ===== */
+  .tabs-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.15);
+  }
+  .tab-btn {
+    font: inherit;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab-btn:hover { color: #fff; background: rgba(var(--accent-rgb), 0.1); }
+  .tab-btn.active {
+    color: var(--accent);
+    border-color: rgba(var(--accent-rgb), 0.5);
+    background: rgba(var(--accent-rgb), 0.12);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.35);
+    text-shadow: 0 0 8px rgba(var(--accent-rgb), 0.6);
+  }
+  .tab-content { display: none; padding: 16px 18px; animation: fadeIn 0.3s ease; }
+  .tab-content.active { display: block; }
+  .tab-content h3 {
+    color: var(--accent);
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    text-shadow: 0 0 8px rgba(var(--accent-rgb), 0.5);
+  }
+  .tab-content p { font-size: 14px; line-height: 1.6; opacity: 0.85; margin-bottom: 8px; }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .info-card {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(var(--accent-rgb), 0.25);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .info-card .k {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.55;
+  }
+  .info-card .v {
+    font-size: 14px;
+    color: var(--accent);
+    margin-top: 4px;
+    text-shadow: 0 0 6px rgba(var(--accent-rgb), 0.5);
+  }
+
+  .modules {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 12px;
+  }
+  .module {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(var(--accent-rgb), 0.25);
+    border-radius: 8px;
+    padding: 14px;
+    transition: all 0.2s;
+  }
+  .module:hover {
+    border-color: rgba(var(--accent-rgb), 0.6);
+    box-shadow: 0 0 16px rgba(var(--accent-rgb), 0.3);
+    transform: translateY(-3px);
+  }
+  .module h4 {
+    color: var(--accent);
+    font-size: 12px;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+  .module p { font-size: 13px; line-height: 1.5; opacity: 0.8; margin: 0; }
+
+  .api-list { display: flex; flex-direction: column; gap: 8px; }
+  .api-item {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 13px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(var(--accent-rgb), 0.2);
+    border-radius: 6px;
+    padding: 9px 12px;
+  }
+  .api-method {
+    color: #00131f;
+    background: var(--accent);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-weight: 700;
+    font-size: 11px;
+  }
+  .api-method.get { background: #7dffcb; }
+  .api-method.post { background: #ffd166; }
+  .api-path { color: var(--accent); }
+  .api-desc {
+    font-family: "Segoe UI", sans-serif;
+    font-size: 12px;
+    opacity: 0.7;
+  }
+
+  #tabLogs {
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 12px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(var(--accent-rgb), 0.2);
+    border-radius: 6px;
+    padding: 12px;
+    max-height: 230px;
+    overflow-y: auto;
+  }
+  .log-line {
+    line-height: 1.6;
+    color: #8fb8cc;
+    border-bottom: 1px dashed rgba(var(--accent-rgb), 0.1);
+    padding: 3px 0;
+    word-break: break-word;
+  }
+  .log-line.err { color: #ff5577; }
+  .logs-note { font-size: 11px; opacity: 0.5; margin-top: 8px; letter-spacing: 1px; }
+
+  .roadmap { display: flex; flex-direction: column; gap: 8px; }
+  .road-item {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(var(--accent-rgb), 0.2);
+    border-radius: 6px;
+  }
+  .badge {
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+  .badge.plan { color: #ffd166; border: 1px solid rgba(255, 209, 102, 0.5); }
+  .badge.wip  { color: var(--accent); border: 1px solid rgba(var(--accent-rgb), 0.5); }
+  .badge.done { color: #7dffcb; border: 1px solid rgba(0, 255, 155, 0.5); }
+
+  /* ===== ТАЙМЕРЫ И НАПОМИНАНИЯ ===== */
+  .timer-form { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .timer-form input {
+    flex: 1;
+    min-width: 150px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(var(--accent-rgb), 0.3);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 10px 12px;
+    font-size: 13px;
+    outline: none;
+    transition: border 0.2s, box-shadow 0.2s;
+  }
+  .timer-form input:focus {
+    border-color: rgba(var(--accent-rgb), 0.8);
+    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.35);
+  }
+  #timerList { display: flex; flex-direction: column; gap: 8px; }
+  .timer-item {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(var(--accent-rgb), 0.25);
+    border-radius: 6px;
+    padding: 9px 12px;
+  }
+  .timer-item.done { opacity: 0.55; border-color: rgba(0, 255, 155, 0.35); }
+  .timer-left {
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 16px;
+    font-weight: 700;
+    min-width: 76px;
+    color: var(--accent);
+    text-shadow: 0 0 8px rgba(var(--accent-rgb), 0.6);
+  }
+  .timer-item.done .timer-left { color: #7dffcb; font-size: 12px; text-shadow: none; }
+  .timer-msg { flex: 1; font-size: 13px; opacity: 0.9; word-break: break-word; }
+  .timer-cancel {
+    background: transparent;
+    border: 1px solid rgba(255, 85, 119, 0.4);
+    color: #ff5577;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    cursor: pointer;
+    line-height: 1;
+    transition: all 0.2s;
+  }
+  .timer-cancel:hover {
+    background: rgba(255, 85, 119, 0.2);
+    box-shadow: 0 0 10px rgba(255, 85, 119, 0.5);
+  }
+  .timer-empty { font-size: 13px; opacity: 0.5; padding: 10px 0; }
+
+  /* всплывающее напоминание */
+  .timer-alert {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-160%);
+    background: rgba(0, 10, 18, 0.94);
+    border: 1px solid rgba(var(--accent-rgb), 0.8);
+    box-shadow: 0 0 30px rgba(var(--accent-rgb), 0.6);
+    color: var(--text);
+    padding: 14px 22px;
+    border-radius: 10px;
+    font-size: 14px;
+    letter-spacing: 1px;
+    z-index: 70;
+    max-width: 90vw;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  }
+  .timer-alert.show { transform: translateX(-50%) translateY(0); }
+  .timer-alert b { color: var(--accent); text-shadow: 0 0 8px rgba(var(--accent-rgb), 0.7); }
+
+  /* ===== ПОГОДА И НОВОСТИ ===== */
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
+
+  .weather-main { display: flex; align-items: center; gap: 16px; }
+  .weather-icon { font-size: 46px; line-height: 1; }
+  .weather-temp {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--accent);
+    text-shadow: 0 0 14px rgba(var(--accent-rgb), 0.6);
+  }
+  .weather-desc { font-size: 14px; opacity: 0.85; }
+  .weather-city { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; opacity: 0.55; }
+  .weather-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .weather-cell {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(var(--accent-rgb), 0.22);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+  .weather-cell b {
+    display: block;
+    margin-top: 3px;
+    font-size: 15px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--accent);
+    text-shadow: 0 0 6px rgba(var(--accent-rgb), 0.5);
+  }
+  .weather-updated { font-size: 10px; opacity: 0.45; margin-top: 10px; letter-spacing: 1px; }
+
+  /* прогноз по дням и по часам */
+  .wx-title {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.55;
+    margin: 18px 0 8px;
+  }
+  .wx-days { display: grid; grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)); gap: 6px; }
+  .wx-day {
+    text-align: center;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(var(--accent-rgb), 0.2);
+    border-radius: 6px;
+    padding: 8px 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .wx-day:hover { border-color: rgba(var(--accent-rgb), 0.55); transform: translateY(-2px); }
+  .wx-day.sel {
+    border-color: rgba(var(--accent-rgb), 0.85);
+    background: rgba(var(--accent-rgb), 0.12);
+    box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.4);
+  }
+  .wx-day .d-name {
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .wx-day .d-num { font-size: 9px; opacity: 0.5; margin-top: 1px; }
+  .wx-day .d-ico { font-size: 20px; margin: 4px 0 2px; }
+  .wx-day .d-temp { font-size: 12px; }
+  .wx-day .d-temp b { color: var(--text); }
+  .wx-day .d-temp span { opacity: 0.5; }
+  .wx-day .d-precip { font-size: 10px; color: #7dccff; opacity: 0.8; margin-top: 2px; }
+
+  .wx-hours { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; }
+  .wx-hours::-webkit-scrollbar { height: 6px; }
+  .wx-hours::-webkit-scrollbar-thumb { background: rgba(var(--accent-rgb), 0.45); border-radius: 3px; }
+  .wx-hours::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.3); border-radius: 3px; }
+  .wx-hour {
+    min-width: 60px;
+    flex-shrink: 0;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(var(--accent-rgb), 0.18);
+    border-radius: 6px;
+    padding: 8px 4px;
+  }
+  .wx-hour.now {
+    border-color: rgba(var(--accent-rgb), 0.85);
+    background: rgba(var(--accent-rgb), 0.1);
+    box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.45);
+  }
+  .wx-hour .h-time { font-size: 10px; letter-spacing: 1px; opacity: 0.6; }
+  .wx-hour .h-ico { font-size: 18px; margin: 3px 0; }
+  .wx-hour .h-t {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    text-shadow: 0 0 6px rgba(var(--accent-rgb), 0.5);
+  }
+  .wx-hour .h-precip { font-size: 10px; color: #7dccff; opacity: 0.75; }
+
+  .news-box { display: flex; flex-direction: column; gap: 8px; }
+  .news-item {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(var(--accent-rgb), 0.2);
+    border-radius: 6px;
+    padding: 9px 11px;
+    transition: all 0.2s;
+  }
+  .news-item:hover {
+    border-color: rgba(var(--accent-rgb), 0.6);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.3);
+    transform: translateX(4px);
+  }
+  .news-item a { color: var(--text); text-decoration: none; font-size: 13px; flex: 1; line-height: 1.4; }
+  .news-item a:hover { color: var(--accent); }
+  .news-src {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #00131f;
+    background: var(--accent);
+    border-radius: 3px;
+    padding: 2px 5px;
+    white-space: nowrap;
+  }
+  .news-src.dev { background: #7dffcb; }
+  .news-src.x { background: #ffffff; color: #000; }
+  .news-author {
+    font-size: 11px;
+    color: var(--accent);
+    opacity: 0.75;
+    white-space: nowrap;
+    text-shadow: 0 0 6px rgba(var(--accent-rgb), 0.4);
+  }
+  .news-date { font-size: 10px; opacity: 0.5; white-space: nowrap; }
+  .load-line { font-size: 13px; opacity: 0.5; padding: 6px 0; }
+  .err-line { color: #ff5577; font-size: 13px; opacity: 0.9; padding: 6px 0; }
+
+  .ctl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ===== BOOT-ЭКРАН ===== */
+  #bootScreen {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    background: #010409;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font: 13px/1.7 Consolas, 'Courier New', monospace;
+    color: var(--accent);
+    cursor: pointer;
+    transition: opacity 0.6s;
+  }
+  #bootScreen.boot-hide { opacity: 0; pointer-events: none; }
+  #bootLog {
+    width: min(600px, 92vw);
+    text-shadow: 0 0 8px rgba(var(--accent-rgb), 0.55);
+    white-space: pre-wrap;
+  }
+  #bootLog .b-line { opacity: 0; animation: bootLine 0.25s forwards; }
+  #bootLog .b-ok { color: #4dff9d; }
+  #bootLog .b-head { font-weight: 700; }
+  #bootLog .b-final { color: #7dffc7; font-weight: 700; }
+  #bootScreen .boot-hint {
+    position: fixed;
+    bottom: 26px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 11px;
+    opacity: 0.4;
+    letter-spacing: 1px;
+  }
+  @keyframes bootLine { to { opacity: 1; } }
+
+  /* ===== ЖИВОЙ СУБТИТР РЕЖИМА «ДЖАРВИС» ===== */
+  #wakeSub {
+    position: fixed;
+    left: 50%;
+    bottom: 18px;
+    transform: translateX(-50%) translateY(8px);
+    z-index: 250;
+    max-width: 90vw;
+    padding: 8px 18px;
+    background: rgba(0, 0, 0, 0.72);
+    border: 1px solid rgba(var(--accent-rgb), 0.55);
+    border-radius: 20px;
+    color: var(--accent);
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.25s;
+    text-align: center;
+    box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.35);
+  }
+  #wakeSub.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #wakeSub .ws-hear { color: #ff5577; }
+
+  .panel-title #qEdit { float: right; font-size: 10px; padding: 3px 9px; }
+  .quick .q-x { color: #ff5577; margin-right: 5px; }
+  .qbtn.q-add { border-style: dashed; opacity: 0.75; }
+
+  /* ===== ИГРА NEON RUNNER ===== */
+  .game-hud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: 0.75;
+    margin-bottom: 10px;
+  }
+  .game-hud .ctl-btn { margin-left: auto; }
+  #dinoCanvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(var(--accent-rgb), 0.3);
+    border-radius: 8px;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  #dinoCanvas:hover { box-shadow: 0 0 16px rgba(var(--accent-rgb), 0.25); }
+  .game-keys { display: flex; gap: 8px; margin-top: 10px; }
+  .game-keys .ctl-btn { flex: 1; }
+
+  /* ===== ПАМЯТЬ ===== */
+  .mem-form { display: flex; gap: 8px; margin-bottom: 12px; }
+  .mem-form input {
+    flex: 1;
+    min-width: 0;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(var(--accent-rgb), 0.3);
+    border-radius: 4px;
+    padding: 8px 10px;
+    color: inherit;
+    font-size: 13px;
+    outline: none;
+  }
+  .mem-form input:focus { border-color: rgba(var(--accent-rgb), 0.8); }
+  .mem-list { display: flex; flex-direction: column; gap: 6px; max-height: 340px; overflow-y: auto; }
+  .mem-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(var(--accent-rgb), 0.2);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+  .mem-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .mem-date { font-size: 10px; opacity: 0.45; white-space: nowrap; }
+  .mem-del { flex: 0 0 auto; padding: 2px 7px !important; }
+
+  /* ===== ГРАФИК CPU И ТОП ПРОЦЕССОВ ===== */
+  .graph-title {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    opacity: 0.5;
+    margin: 12px 0 6px;
+  }
+  #cpuGraph {
+    display: block;
+    width: 100%;
+    height: 46px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(var(--accent-rgb), 0.2);
+    border-radius: 4px;
+  }
+  .top-procs { display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
+  .top-row {
+    display: flex;
+    gap: 8px;
+    padding: 3px 6px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+  }
+  .top-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: Consolas, monospace;
+    opacity: 0.85;
+  }
+  .top-val { color: var(--accent); font-weight: 700; min-width: 42px; text-align: right; }
+  .top-mem { opacity: 0.6; }
+
+  /* ===== ИГРОВОЙ ЗАЛ: ПЕРЕКЛЮЧАТЕЛЬ, MEMORY, SNAKE, РЕКОРДЫ ===== */
+  .game-switch { display: flex; gap: 8px; margin: 14px 0 12px; }
+  .gsw {
+    flex: 1;
+    padding: 9px 6px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(var(--accent-rgb), 0.25);
+    border-radius: 6px;
+    color: var(--text, #e6fbff);
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: 0.2s;
+  }
+  .gsw:hover { opacity: 1; }
+  .gsw.active {
+    background: rgba(var(--accent-rgb), 0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+    opacity: 1;
+    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.35);
+  }
+  .game-view[hidden] { display: none; }
+
+  .lb-box { margin-top: 14px; }
+  .lb-list { display: flex; flex-direction: column; gap: 4px; font-size: 12px; min-height: 24px; }
+  .lb-row {
+    display: flex;
+    gap: 8px;
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+  }
+  .lb-rank { width: 24px; color: var(--accent); font-weight: 700; }
+  .lb-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lb-score { color: var(--accent); font-weight: 700; }
+  .lb-empty { opacity: 0.5; }
+
+  /* Memory */
+  .mem-board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    max-width: 430px;
+    margin: 0 auto;
+  }
+  .mcard {
+    position: relative;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: clamp(20px, 5vw, 30px);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    user-select: none;
+  }
+  .mcard .me { visibility: hidden; }
+  .mcard:not(.up):not(.matched)::after {
+    content: '?';
+    position: absolute;
+    font-size: 18px;
+    color: rgba(var(--accent-rgb), 0.55);
+    font-weight: 700;
+  }
+  .mcard.up { border-color: var(--accent); box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.4); }
+  .mcard.up .me, .mcard.matched .me { visibility: visible; }
+  .mcard.matched {
+    border-color: #7dffcb;
+    box-shadow: 0 0 12px rgba(125, 255, 203, 0.5);
+    animation: memPop 0.3s ease;
+  }
+  @keyframes memPop { 50% { transform: scale(1.08); } }
+
+  /* Snake */
+  #snakeCanvas {
+    display: block;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(var(--accent-rgb), 0.25);
+    border-radius: 6px;
+    margin: 0 auto;
+    max-width: 100%;
+    touch-action: none;
+  }
+  .snake-hint { font-size: 12px; opacity: 0.7; align-self: center; }
+
+  /* ===== PIN-ОВЕРЛЕЙ (п.16 плана) ===== */
+  .pin-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 400; /* выше boot-экрана (300) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(1, 6, 15, 0.94);
+    backdrop-filter: blur(8px);
+    opacity: 1;
+    transition: opacity 0.35s ease;
+  }
+  .pin-overlay.pin-hide { opacity: 0; pointer-events: none; }
+  .pin-box {
+    width: min(340px, 92vw);
+    padding: 26px 22px 20px;
+    border: 1px solid rgba(var(--accent-rgb), 0.4);
+    border-radius: 12px;
+    background: var(--panel);
+    box-shadow: 0 0 34px rgba(var(--accent-rgb), 0.3);
+    text-align: center;
+  }
+  .pin-title {
+    font: 700 15px Consolas, monospace;
+    letter-spacing: 3px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .pin-sub { font-size: 12px; opacity: 0.7; margin-bottom: 16px; }
+  #pinInput {
+    width: 100%;
+    padding: 12px;
+    font: 700 24px Consolas, monospace;
+    letter-spacing: 10px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(var(--accent-rgb), 0.45);
+    border-radius: 6px;
+    color: var(--accent);
+    outline: none;
+    margin-bottom: 12px;
+  }
+  #pinInput:focus { box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.45); }
+  .pin-box .ctl-btn { width: 100%; }
+  .pin-err { color: #ff5f77; font-size: 12px; min-height: 16px; margin-top: 8px; }
+  .pin-hint { font-size: 10px; opacity: 0.45; margin-top: 10px; letter-spacing: 0.5px; }
+
+  /* индикатор ответа ИИ */
+  .msg.typing { opacity: 0.7; }
+  .typing-dots {
+    display: inline-block;
+    margin-left: 8px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    animation: tDots 1s infinite steps(4);
+  }
+  @keyframes tDots { 50% { opacity: 0.3; } }
+
+  /* ===== ВИДЖЕТ ПОГОДЫ В ШАПКЕ ===== */
+  .wx-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(var(--accent-rgb), 0.4);
+    border-radius: 16px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .wx-chip:hover {
+    border-color: rgba(var(--accent-rgb), 0.9);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.4);
+    transform: translateY(-1px);
+  }
+  .wx-chip-ico { font-size: 15px; }
+
+
+
   footer {
     text-align: center;
     font-size: 11px;
@@ -506,6 +1337,26 @@
 
 <canvas id="rain"></canvas>
 <div id="flash"></div>
+<div id="wakeSub"></div>
+
+<!-- BOOT-ЭКРАН -->
+<div id="bootScreen">
+  <div id="bootLog"></div>
+  <div class="boot-hint">клик / любая клавиша — пропустить</div>
+</div>
+
+<!-- Заглушка PIN-доступа (п.16 плана): перекрывает всё, пока API закрыт -->
+<div id="pinOverlay" class="pin-overlay">
+  <div class="pin-box">
+    <div class="pin-title">J.A.R.V.I.S. // ДОСТУП</div>
+    <div class="pin-sub">Введите PIN-код для подключения к системе</div>
+    <input id="pinInput" type="password" inputmode="numeric" maxlength="8"
+           autocomplete="off" placeholder="••••" aria-label="PIN-код">
+    <button class="ctl-btn" id="pinGo">ВОЙТИ</button>
+    <div id="pinErr" class="pin-err"></div>
+    <div class="pin-hint">PIN задаётся на сервере (JARVIS_PIN)</div>
+  </div>
+</div>
 
 <header>
   <div class="logo">J.A.R.V.I.S. <span>— Windows Assistant</span></div>
@@ -517,6 +1368,13 @@
       <button class="swatch" data-theme="amber"  title="Amber"></button>
     </div>
     <button class="ctl-btn" id="rainToggle" title="Включение/выключение дождя">Дождь: ВКЛ</button>
+    <button class="ctl-btn" id="voiceToggle" title="Голос Джарвиса (синтез речи)">Голос: ВЫКЛ</button>
+    <button class="ctl-btn" id="micToggle" title="Скажите команду голосом (распознавание речи)">СЛУШАТЬ</button>
+    <button class="ctl-btn" id="wakeToggle" title="Постоянное слушание: говорите «Джарвис, ...»">ДЖАРВИС-РЕЖИМ</button>
+    <div class="wx-chip" id="wxChip" title="Погода в Астане — клик, чтобы открыть подробности" style="display:none">
+      <span class="wx-chip-ico" id="wxChipIco">—</span>
+      <span id="wxChipTemp">--°</span>
+    </div>
     <div class="status"><span class="dot"></span> Online</div>
   </div>
 </header>
@@ -535,34 +1393,38 @@
         <div class="bar"><div class="bar-fill" id="ramBar"></div></div>
       </div>
       <div class="stat">
-        <div class="stat-head"><span>Network</span><span class="stat-val" id="netVal">0 Mb/s</span></div>
+        <div class="stat-head"><span>Network (реальный)</span><span class="stat-val" id="netVal">0 Mb/s</span></div>
         <div class="bar"><div class="bar-fill" id="netBar"></div></div>
       </div>
+      <div class="stat">
+        <div class="stat-head"><span>Disk</span><span class="stat-val" id="diskVal">—</span></div>
+        <div class="bar"><div class="bar-fill" id="diskBar"></div></div>
+      </div>
+      <div class="graph-title">CPU — последние ~2 минуты</div>
+      <canvas id="cpuGraph" width="300" height="46"></canvas>
+      <div class="graph-title">Топ процессов (CPU% · RAM%)</div>
+      <div id="topProcs" class="top-procs">—</div>
     </section>
 
     <section class="panel">
-      <div class="panel-title">Quick Commands</div>
-      <div class="quick">
-        <button class="qbtn" data-action="browser">◈ Открыть браузер</button>
-        <button class="qbtn" data-action="game">◈ Запустить игру</button>
-        <button class="qbtn" data-action="screenshot">◈ Скриншот</button>
-        <button class="qbtn" data-action="scan">◈ Сканирование системы</button>
-        <button class="qbtn" data-action="theme">◈ Сменить тему</button>
-        <button class="qbtn" data-action="rain">◈ Переключить дождь</button>
-      </div>
+      <div class="panel-title">Quick Commands <button class="ctl-btn" id="qEdit" title="Редактировать список кнопок">⚙</button></div>
+      <div class="quick"></div>
     </section>
   </div>
 
   <!-- ЦЕНТР: ЯДРО -->
   <div class="col col-center">
-    <section class="panel core-wrap">
-      <div class="core">
-        <div class="ring r1"></div>
-        <div class="ring r2"></div>
-        <div class="ring r3"></div>
-        <div class="core-inner"></div>
+    <section class="panel core-wrap" id="coreWrap">
+      <div class="core-stage" id="coreStage">
+        <div class="core" id="core">
+          <div class="ring r1"></div>
+          <div class="ring r2"></div>
+          <div class="ring r3"></div>
+          <div class="core-inner"></div>
+        </div>
       </div>
-      <div class="core-label">Core Reactor — Active</div>
+      <div class="core-label" id="coreLabel">Core Reactor — Active</div>
+      <div class="core-hint">клик — импульс · двойной клик — тема · разгон до x25 = перегрузка и взрыв</div>
     </section>
   </div>
 
@@ -570,6 +1432,10 @@
   <div class="col">
     <section class="panel chat">
       <div class="panel-title">Communication Channel</div>
+      <div class="chat-tools">
+        <input type="text" id="msgSearch" placeholder="🔍 поиск по истории..." autocomplete="off">
+        <button class="ctl-btn" id="chatClear" title="Очистить историю чата">✕ Очистить</button>
+      </div>
       <div id="messages">
         <div class="msg bot"><span class="who">J.A.R.V.I.S.</span>Все системы работают в штатном режиме. Слушаю вас. Для списка команд введите <b>help</b> в терминале ниже.</div>
       </div>
@@ -591,6 +1457,191 @@
       </div>
     </section>
   </div>
+  <!-- ПОГОДА И НОВОСТИ ИИ -->
+  <div class="full">
+    <div class="split">
+      <section class="panel">
+        <div class="panel-title">Погода · Астана</div>
+        <div id="weatherBox"><div class="load-line">Загрузка погоды...</div></div>
+      </section>
+      <section class="panel">
+        <div class="panel-title">AI News</div>
+        <div id="newsBox" class="news-box"><div class="load-line">Загрузка новостей об ИИ...</div></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ОПИСАНИЕ И ВКЛАДКИ -->
+  <div class="full">
+    <section class="panel">
+      <div class="tabs-nav">
+        <button class="tab-btn active" data-tab="about">О системе</button>
+        <button class="tab-btn" data-tab="modules">Модули</button>
+        <button class="tab-btn" data-tab="memory">Память</button>
+        <button class="tab-btn" data-tab="api">API</button>
+        <button class="tab-btn" data-tab="logs">Журнал</button>
+        <button class="tab-btn" data-tab="timers">Таймеры</button>
+        <button class="tab-btn" data-tab="game">Игра</button>
+        <button class="tab-btn" data-tab="roadmap">Дорожная карта</button>
+      </div>
+
+      <div class="tab-content active" id="tab-about">
+        <h3>J.A.R.V.I.S. — Windows Assistant</h3>
+        <p>Голографический HUD-интерфейс персонального помощника в духе Джарвиса из «Железного человека»: кибер-дождь, пульсирующее ядро, живая статистика системы, чат с разбором команд и терминал. Фронтенд — чистый HTML/CSS/JS, бэкенд — Node.js + Express, доступ из интернета — через Cloudflare Tunnel.</p>
+        <p>Все действия — смена темы, переключение дождя, быстрые команды и журнал — синхронизируются с сервером в реальном времени.</p>
+        <div class="info-grid">
+          <div class="info-card"><div class="k">Версия</div><div class="v">v2.6</div></div>
+          <div class="info-card"><div class="k">Frontend</div><div class="v">HTML / CSS / JS</div></div>
+          <div class="info-card"><div class="k">Backend</div><div class="v">Node.js + Express</div></div>
+          <div class="info-card"><div class="k">Порт</div><div class="v">localhost:3000</div></div>
+          <div class="info-card"><div class="k">Туннель</div><div class="v">trycloudflare.com</div></div>
+          <div class="info-card"><div class="k">Статус</div><div class="v">Online</div></div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-modules">
+        <h3>Модули системы</h3>
+        <div class="modules">
+          <div class="module">
+            <h4>CORE REACTOR</h4>
+            <p>Пульсирующее ядро-реактор. Плавный синхронный разгон колец за 3 сек, каждый клик поднимает потолок до x25. На пределе — перегрузка, красная тряска и взрыв с перезагрузкой.</p>
+          </div>
+          <div class="module">
+            <h4>CYBER RAIN</h4>
+            <p>Неоновый дождь на Canvas: градиентные капли с хвостами, позади всех панелей (z-index: -1). Цвет следует за темой, включается/выключается кнопкой и командой rain.</p>
+          </div>
+          <div class="module">
+            <h4>NEURAL CHAT</h4>
+            <p>Окно общения с Джарвисом. Команды разбирает серверный jarvisBrain: темы, дождь, help, браузер, игра, скриншот, сканирование — действия применяются и на клиенте, и в состоянии сервера.</p>
+          </div>
+          <div class="module">
+            <h4>TERMINAL</h4>
+            <p>Командная строка HUD. Серверные: help, ping, theme, rain, status, clear. Локальные: game, scan, open, time, date, echo, screenshot, about, whoami, sudo.</p>
+          </div>
+          <div class="module">
+            <h4>SYSTEM MONITOR</h4>
+            <p>Метрики каждые 2 секунды: CPU — os.loadavg() к числу ядер, RAM — totalmem/freemem, Network — имитация 5–95 Мбит/с с плавным изменением.</p>
+          </div>
+          <div class="module">
+            <h4>THEME ENGINE</h4>
+            <p>Четыре темы (cyan, matrix, violet, amber) на CSS-переменных: панели, кнопки, ядро и дождь перекрашиваются мгновенно. Выбор хранится в localStorage и на сервере.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-api">
+        <h3>REST API</h3>
+        <div class="api-list">
+          <div class="api-item"><span class="api-method">POST</span><span class="api-path">/api/chat</span><span class="api-desc">тело { message } → { reply, action } — ответ Джарвиса и действие (тема/дождь)</span></div>
+          <div class="api-item"><span class="api-method get">GET</span><span class="api-path">/api/system</span><span class="api-desc">→ { cpu, ram, network } — метрики каждые 2 сек</span></div>
+          <div class="api-item"><span class="api-method">POST</span><span class="api-path">/api/command</span><span class="api-desc">тело { action } → { status, message } — open_browser | launch_game | screenshot | system_scan</span></div>
+          <div class="api-item"><span class="api-method">POST</span><span class="api-path">/api/terminal</span><span class="api-desc">тело { command } → { output, clear } — help, ping, theme, rain, status, clear</span></div>
+          <div class="api-item"><span class="api-method get">GET</span><span class="api-path">/api/state</span><span class="api-desc">→ { theme, rain, online, uptime, logs } — состояние и журнал (50 записей)</span></div>
+          <div class="api-item"><span class="api-method post">POST</span><span class="api-path">/api/auth</span><span class="api-desc">тело { pin } → { ok: true } | 401 — остальной /api/* требует заголовок x-jarvis-pin</span></div>
+          <div class="api-item"><span class="api-method get">GET</span><span class="api-path">/api/plugins</span><span class="api-desc">→ { commands: [{ cmd, desc, plugin }] } — реестр плагинов</span></div>
+          <div class="api-item"><span class="api-method">POST</span><span class="api-path">/api/scores</span><span class="api-desc">тело { game, score, name } → таблица рекордов (runner|memory|snake), GET ?game= — топ-10</span></div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-logs">
+        <h3>Журнал событий</h3>
+        <div id="tabLogs"><div class="log-line">Загрузка журнала...</div></div>
+        <div class="logs-note">обновляется каждые 5 секунд · последние 50 записей · формат HH:MM:SS — событие</div>
+      </div>
+
+      <div class="tab-content" id="tab-timers">
+        <h3>Таймеры и напоминания</h3>
+        <div class="timer-form">
+          <input type="text" id="timerDur" placeholder="Время: 30s | 5m | 1h | 90" autocomplete="off">
+          <input type="text" id="timerMsg" placeholder="Текст напоминания" autocomplete="off">
+          <button class="btn-primary" id="timerAdd">Запустить</button>
+        </div>
+        <div id="timerList"></div>
+        <div class="logs-note">через чат: «напомни через 10 минут позвонить» или «напомни в 18:30 созвон» · терминал: timer 90s кофе | timer 18:30 обед | timers | timer off · таймеры хранятся на сервере и видны со всех устройств</div>
+      </div>
+
+      <div class="tab-content" id="tab-memory">
+        <h3>Память — что Джарвис запомнил</h3>
+        <div class="mem-form">
+          <input type="text" id="memInput" placeholder="Например: звонить маме в воскресенье..." autocomplete="off">
+          <button class="ctl-btn" id="memAdd">Запомнить</button>
+        </div>
+        <div id="memList" class="mem-list"></div>
+        <div class="logs-note">через чат: «запомни купить билеты» · «что ты помнишь» · «меня зовут …» — персональное приветствие · терминал: запомни … | память · хранится на сервере (data/memory.json)</div>
+      </div>
+
+      <div class="tab-content" id="tab-game">
+        <h3>Игровой зал J.A.R.V.I.S.</h3>
+        <div class="game-switch">
+          <button class="gsw active" data-game="runner">Neon Runner</button>
+          <button class="gsw" data-game="memory">Memory</button>
+          <button class="gsw" data-game="snake">Snake</button>
+        </div>
+
+        <div class="game-view" id="gv-runner">
+          <div class="game-hud">
+            <span>SPACE / ↑ / клик — прыжок</span>
+            <span>↓ — пригнуться (и быстрое падение в воздухе)</span>
+            <button class="ctl-btn" id="dinoRestart">Заново</button>
+          </div>
+          <canvas id="dinoCanvas" width="880" height="250"></canvas>
+          <div class="game-keys">
+            <button class="ctl-btn" id="dinoJump">▲ ПРЫЖОК</button>
+            <button class="ctl-btn" id="dinoDuck">▼ ПРИГНУТЬСЯ</button>
+          </div>
+          <div class="lb-box">
+            <div class="graph-title">Таблица рекордов — серверная (top-10)</div>
+            <div id="lbList" class="lb-list">—</div>
+          </div>
+          <div class="logs-note">рекорд в localStorage · счёт уходит в таблицу рекордов на сервер · скорость растёт постоянно</div>
+        </div>
+
+        <div class="game-view" id="gv-memory" hidden>
+          <div class="game-hud">
+            <span>ходы: <b id="mMoves">0</b> · время: <b id="mTime">0</b>с · пары: <b id="mPairs">0/8</b></span>
+            <button class="ctl-btn" id="memRestart">Новая партия</button>
+          </div>
+          <div id="memBoard" class="mem-board"></div>
+          <div class="logs-note" id="memNote">игра на внимание · очки = 5000 − время×10 − ходы×20 · счёт уходит в таблицу рекордов</div>
+        </div>
+
+        <div class="game-view" id="gv-snake" hidden>
+          <div class="game-hud">
+            <span>счёт: <b id="snakeScore">0</b> · рекорд: <b id="snakeBest">0</b></span>
+            <button class="ctl-btn" id="snakeRestart">Заново</button>
+          </div>
+          <canvas id="snakeCanvas" width="360" height="360"></canvas>
+          <div class="game-keys">
+            <span class="snake-hint">←↑↓→ или WASD — движение · SPACE — пауза · ESC — стоп</span>
+          </div>
+          <div class="logs-note">не врезайтесь в стену и в себя · 10 очков за еду · счёт уходит в таблицу рекордов</div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-roadmap">
+        <h3>Дорожная карта</h3>
+        <div class="roadmap">
+          <div class="road-item"><span>Голосовое управление (Web Speech API, распознавание речи)</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>Синтез речи: Джарвис отвечает голосом (speechSynthesis)</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>Напоминания и таймеры через чат («напомни через 10 минут»)</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>Погода и новости по запросу (внешние API)</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>История команд и поиск по журналу</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>Автозапуск с Windows (планировщик задач)</span><span class="badge wip">В работе</span></div>
+          <div class="road-item"><span>HUD-интерфейс, ядро с перегрузкой и взрывом</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>Бэкенд: чат, мониторинг, команды, терминал, журнал</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>Доступ с любого устройства через Cloudflare Tunnel</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>Игра Neon Runner (динозаврик в стиле HUD)</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>Модуль памяти: «запомни…» / «что ты помнишь»</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>Плагины: погода по городу, курсы валют НБК</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>Управление ПК: замок, громкость, спящий режим, проводник</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>Игровой зал: Memory, Snake и серверная таблица рекордов</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>PWA: manifest, service worker, офлайн-режим</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>PIN-доступ к API</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>ИИ-чат: бесплатная модель с личностью Джарвиса (Pollinations)</span><span class="badge done">Готово</span></div>
+        </div>
+      </div>
+    </section>
+  </div>
 </main>
 
 <footer>J.A.R.V.I.S. INTERFACE v2.6 // ALL SYSTEMS NOMINAL</footer>
@@ -600,6 +1651,37 @@
    ГЛОБАЛЬНЫЙ ОБЪЕКТ
 ================================================================ */
 var JARVIS = {};
+
+/* ================================================================
+   0. PIN-ДОСТУП (п.16 плана): переопределённый fetch подставляет
+   заголовок x-jarvis-pin во все запросы к /api/* (кроме /api/auth).
+   Ответ 401 возвращает на оверлей-заглушку.
+================================================================ */
+(function () {
+  var origFetch = window.fetch;
+  window.fetch = function (input, init) {
+    try {
+      var url = typeof input === 'string' ? input : (input && input.url) || '';
+      if (url.indexOf('/api/') !== -1 && url.indexOf('/api/auth') === -1) {
+        var pin = null;
+        try { pin = sessionStorage.getItem('jarvis-pin'); } catch (e) {}
+        if (pin) {
+          init = init ? Object.assign({}, init) : {};
+          var h = new Headers(init.headers || (input && input.headers) || undefined);
+          if (!h.has('x-jarvis-pin')) h.set('x-jarvis-pin', pin);
+          init.headers = h;
+        }
+      }
+    } catch (e) {}
+    return origFetch.call(this, input, init).then(function (resp) {
+      if (resp.status === 401) {
+        try { sessionStorage.removeItem('jarvis-pin'); } catch (e) {}
+        if (JARVIS.showPin) JARVIS.showPin();
+      }
+      return resp;
+    });
+  };
+})();
 
 /* ================================================================
    1. КИБЕР-ДОЖДЬ (включается/выключается, цвет = цвет темы)
@@ -612,6 +1694,8 @@ var JARVIS = {};
   var enabled = true;
   var needsClear = false;
   var rgb = '0, 229, 255';
+  var fx = 'clear';        // погодный режим: clear | rain | heavy | snow
+  var t = 0;               // счётчик кадров (для дрейфа снежинок)
 
   function resize() {
     W = canvas.width = window.innerWidth;
@@ -640,11 +1724,31 @@ var JARVIS = {};
     }
     needsClear = false;
     ctx.clearRect(0, 0, W, H);
+    t++;
+
+    // множители погодного режима (реальная погода в Астане влияет на дождь)
+    var spdMul = fx === 'heavy' ? 2.0 : fx === 'rain' ? 1.5 : 1;
+    var aMul = fx === 'heavy' ? 1.7 : fx === 'rain' ? 1.35 : 1;
+
     for (var i = 0; i < drops.length; i++) {
       var d = drops[i];
+
+      // снег — медленные белые снежинки с дрейфом
+      if (fx === 'snow') {
+        var dx = Math.sin((d.y + i * 37) * 0.02) * 1.6;
+        ctx.fillStyle = 'rgba(235, 245, 255, ' + Math.min(1, d.alpha * 0.95) + ')';
+        ctx.beginPath();
+        ctx.arc(d.x + dx, d.y, d.width + 1.2, 0, Math.PI * 2);
+        ctx.fill();
+        d.y += d.speed * 0.3;
+        d.x += Math.sin(t * 0.01 + i) * 0.35;
+        if (d.y > H) drops[i] = makeDrop(false);
+        continue;
+      }
+
       var grad = ctx.createLinearGradient(d.x, d.y - d.len, d.x, d.y);
       grad.addColorStop(0, 'rgba(' + rgb + ', 0)');
-      grad.addColorStop(1, 'rgba(' + rgb + ', ' + d.alpha + ')');
+      grad.addColorStop(1, 'rgba(' + rgb + ', ' + Math.min(1, d.alpha * aMul) + ')');
       ctx.strokeStyle = grad;
       ctx.lineWidth = d.width;
       ctx.beginPath();
@@ -652,10 +1756,10 @@ var JARVIS = {};
       ctx.lineTo(d.x, d.y);
       ctx.stroke();
 
-      ctx.fillStyle = 'rgba(' + rgb + ', ' + Math.min(1, d.alpha + 0.3) + ')';
+      ctx.fillStyle = 'rgba(' + rgb + ', ' + Math.min(1, d.alpha * aMul + 0.3) + ')';
       ctx.fillRect(d.x - d.width / 2, d.y - 2, d.width, 3);
 
-      d.y += d.speed;
+      d.y += d.speed * spdMul;
       if (d.y - d.len > H) drops[i] = makeDrop(false);
     }
     requestAnimationFrame(draw);
@@ -669,12 +1773,42 @@ var JARVIS = {};
   JARVIS.rainOn = function () { enabled = true; };
   JARVIS.rainOff = function () { enabled = false; };
   JARVIS.rainIsOn = function () { return enabled; };
+  // погодный режим дождя (вызывается из секции «Погода»)
+  JARVIS.setRainFX = function (mode) { fx = mode || 'clear'; };
+  JARVIS.getRainFX = function () { return fx; };
 })();
 
 /* ================================================================
    2. ТЕМЫ
 ================================================================ */
 var THEMES = ['cyan', 'matrix', 'violet', 'amber'];
+
+// Команды, которые выполняет сервер (остальное — локально)
+var SERVER_CMDS = ['help', 'ping', 'theme', 'rain', 'status', 'clear'];
+var PLUGIN_HELP = []; // строки help от плагинов (п.12 плана)
+
+// подтягиваем реестр плагинов: их команды уходят на сервер, help дополняется
+fetch('/api/plugins')
+  .then(function (r) { return r.json(); })
+  .then(function (d) {
+    (d.commands || []).forEach(function (c) {
+      var w = String(c.cmd).split(/\s+/)[0].toLowerCase();
+      if (SERVER_CMDS.indexOf(w) === -1) SERVER_CMDS.push(w);
+      PLUGIN_HELP.push('  ' + (c.cmd + '                 ').slice(0, 18) +
+                       '— ' + (c.desc || 'плагин ' + c.plugin));
+    });
+  })
+  .catch(function () {});
+
+// Применение действия из чата (смена темы / дождь)
+function applyAction(action) {
+  if (!action) return;
+  if (action.type === 'theme') JARVIS.setTheme(action.value, true);
+  if (action.type === 'rain') {
+    if (action.value && !JARVIS.rainIsOn()) JARVIS.toggleRain();
+    if (!action.value && JARVIS.rainIsOn()) JARVIS.toggleRain();
+  }
+}
 
 JARVIS.setTheme = function (id, silent) {
   if (THEMES.indexOf(id) === -1) return false;
@@ -723,27 +1857,405 @@ JARVIS.toggleRain = function () {
 };
 
 rainToggle.addEventListener('click', function () {
-  termLog('Кибер-дождь: ' + (JARVIS.rainIsOn() ? 'включён' : 'выключен'), 'ok');
+  // Переключаем локально
+  var on = JARVIS.toggleRain();
+  termLog('Кибер-дождь: ' + (on ? 'включён' : 'выключен'), 'ok');
+
+  // Синхронизируем состояние с сервером
+  fetch('/api/terminal', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ command: 'rain ' + (on ? 'on' : 'off') })
+  }).catch(function () {}); // без сервера — просто работаем локально
 });
+
+/* ================================================================
+   3.1. ГОЛОС ДЖАРВИСА (speechSynthesis)
+================================================================ */
+var voiceToggle = document.getElementById('voiceToggle');
+var voiceSupported = 'speechSynthesis' in window;
+var voiceOn = false;
+try { voiceOn = voiceSupported && localStorage.getItem('jarvis-voice') === '1'; } catch (e) {}
+
+function updateVoiceBtn() {
+  if (!voiceSupported) {
+    voiceToggle.textContent = 'Голос: н/д';
+    voiceToggle.disabled = true;
+    return;
+  }
+  voiceToggle.textContent = 'Голос: ' + (voiceOn ? 'ВКЛ' : 'ВЫКЛ');
+  voiceToggle.classList.toggle('off', !voiceOn);
+}
+
+// список голосов Chrome отдаёт асинхронно — слушаем и кэшируем русские
+var ruVoices = [];
+function loadVoices() {
+  if (!voiceSupported) return;
+  var all = speechSynthesis.getVoices() || [];
+  ruVoices = all.filter(function (v) {
+    return v.lang && v.lang.toLowerCase().indexOf('ru') === 0;
+  });
+}
+if (voiceSupported) {
+  loadVoices();
+  speechSynthesis.onvoiceschanged = loadVoices;
+}
+
+JARVIS.voiceOn = function () { return voiceOn; };
+
+// произнести текст (только при включённом голосе)
+JARVIS.speak = function (text) {
+  if (!voiceOn || !voiceSupported || !text) return;
+  try {
+    speechSynthesis.cancel(); // предыдущая реплика не копится в очередь
+    var u = new SpeechSynthesisUtterance(text);
+    if (ruVoices.length) u.voice = ruVoices[0]; // предпочитаем русский голос
+    u.lang = 'ru-RU';
+    u.rate = 1;
+    u.pitch = 0.85; // чуть ниже — «железный» голос
+    u.volume = 1;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+};
+
+JARVIS.setVoice = function (on, silent) {
+  voiceOn = !!on;
+  updateVoiceBtn();
+  try { localStorage.setItem('jarvis-voice', voiceOn ? '1' : '0'); } catch (e) {}
+  if (!voiceOn && voiceSupported) speechSynthesis.cancel();
+  if (!silent) {
+    termLog('Голос Джарвиса: ' + (voiceOn ? 'включён' : 'выключен'), 'ok');
+    if (voiceOn) JARVIS.speak('Голосовой модуль активирован. Слушаю вас, сэр.');
+  }
+};
+
+voiceToggle.addEventListener('click', function () {
+  JARVIS.setVoice(!voiceOn);
+});
+
+updateVoiceBtn();
+
+/* ================================================================
+   3.2. РАСПОЗНАВАНИЕ РЕЧИ — голосовая команда в чат
+   (Web Speech API, речь → поле ввода → JARVIS.chatSend)
+================================================================ */
+var micToggle = document.getElementById('micToggle');
+var SRClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+var micOn = false;
+var micRecog = null;
+
+function micBtnUI(listening, text) {
+  micToggle.textContent = text;
+  micToggle.classList.toggle('off', !listening);
+}
+
+function stopMic() {
+  try { if (micRecog) micRecog.stop(); } catch (e) {}
+}
+JARVIS.micStop = function () { if (micOn) stopMic(); };
+
+if (!SRClass) {
+  micToggle.disabled = true;
+  micToggle.textContent = 'Микрофон: н/д';
+  micToggle.title = 'Браузер не поддерживает распознавание речи (нужен Chrome/Edge)';
+} else {
+  micBtnUI(false, 'СЛУШАТЬ');
+
+  micToggle.addEventListener('click', function () {
+    if (micOn) { stopMic(); return; }
+    // один микрофон: перед разовой записью выключаем режим «Джарвис»
+    if (JARVIS.wakeStop) JARVIS.wakeStop();
+    try {
+      var input = document.getElementById('msgInput');
+      var finalText = '';
+      micRecog = new SRClass();
+      micRecog.lang = 'ru-RU';
+      micRecog.interimResults = true;
+      micRecog.maxAlternatives = 1;
+      micRecog.continuous = false;
+
+      micRecog.onstart = function () {
+        micOn = true;
+        micBtnUI(true, '■ ГОВОРИТЕ');
+        if (input) input.value = '';
+        termLog('Микрофон активен — говорите команду...', 'ok');
+      };
+      micRecog.onresult = function (e) {
+        var interim = '';
+        for (var i = e.resultIndex; i < e.results.length; i++) {
+          var r = e.results[i];
+          if (r.isFinal) finalText += r[0].transcript;
+          else interim += r[0].transcript;
+        }
+        // живой текст — прямо в поле ввода чата
+        if (input) input.value = (finalText + interim).trim();
+      };
+      micRecog.onerror = function (e) {
+        var msg = e.error === 'not-allowed' ? 'доступ к микрофону запрещён — разреши в браузере'
+                : e.error === 'no-speech' ? 'речь не обнаружена'
+                : e.error === 'network' ? 'сетевая ошибка распознавания'
+                : e.error;
+        termLog('Микрофон: ' + msg, 'err');
+      };
+      micRecog.onend = function () {
+        micOn = false;
+        micBtnUI(false, 'СЛУШАТЬ');
+        var text = input ? input.value.trim() : '';
+        if (text) {
+          termLog('Голос → чат: «' + text + '»', 'sys');
+          JARVIS.chatSend(text); // сервер разберёт команду; при включённом голосе ответ прозвучит
+        } else {
+          termLog('Микрофон: пусто, команда не распознана.', 'sys');
+        }
+      };
+
+      micRecog.start();
+    } catch (e) {
+      termLog('Микрофон не запустился: ' + e.message, 'err');
+    }
+  });
+}
+
+/* ================================================================
+   3.3. WAKE-WORD «ДЖАРВИС» — постоянное слушание (п.7 плана)
+   Говорите «Джарвис, открой терминал» → команда уходит в чат.
+================================================================ */
+(function () {
+  var wakeToggle = document.getElementById('wakeToggle');
+  var sub = document.getElementById('wakeSub');
+  var SR2 = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var wakeOn = false;
+  var recog = null;
+  var hideSubT = null;
+
+  function subShow(html, hold) {
+    if (!sub) return;
+    sub.innerHTML = html;
+    sub.classList.add('show');
+    clearTimeout(hideSubT);
+    if (!hold) hideSubT = setTimeout(function () { sub.classList.remove('show'); }, 4000);
+  }
+
+  function wakeUI(on) {
+    wakeToggle.textContent = on ? '● СЛУШАЮ…' : 'ДЖАРВИС-РЕЖИМ';
+    wakeToggle.classList.toggle('off', !on);
+  }
+
+  function hasWakeWord(t) {
+    var l = t.toLowerCase();
+    return l.indexOf('джарв') !== -1 || l.indexOf('jarvis') !== -1;
+  }
+
+  function handleFinal(t) {
+    t = (t || '').trim();
+    if (!t) return;
+    if (!hasWakeWord(t)) {
+      // чужая речь — просто показали и молчим
+      subShow('<span class="ws-hear">мимо:</span> «' + t.replace(/</g, '&lt;') + '»');
+      return;
+    }
+    // вырезаем wake-word, остальное — команда
+    var l = t.toLowerCase();
+    var idx = l.indexOf('джарв');
+    if (idx === -1) idx = l.indexOf('jarvis');
+    var cmd = t.slice(idx).replace(/^(?:джарвис\S*|jarvis\S*)[\s,!.:;-]*/i, '').trim();
+    if (cmd) {
+      subShow('✅ «' + cmd.replace(/</g, '&lt;') + '»');
+      termLog('Wake-word → чат: «' + cmd + '»', 'ok');
+      JARVIS.chatSend(cmd);
+    } else {
+      subShow('👂 слушаю вас, сэр…');
+      termLog('Джарвис призван по имени.', 'sys');
+      if (JARVIS.voiceOn && JARVIS.voiceOn()) JARVIS.speak('Слушаю вас, сэр.');
+    }
+  }
+
+  function startWake() {
+    if (!SR2) return;
+    try {
+      recog = new SR2();
+      recog.lang = 'ru-RU';
+      recog.continuous = true;
+      recog.interimResults = true;
+
+      recog.onstart = function () {
+        subShow('👂 режим «Джарвис» активен — скажите «Джарвис, …»', false);
+      };
+      recog.onresult = function (e) {
+        var interim = '';
+        for (var i = e.resultIndex; i < e.results.length; i++) {
+          var r = e.results[i];
+          if (r.isFinal) handleFinal(r[0].transcript);
+          else interim += r[0].transcript;
+        }
+        if (interim) subShow('🗣 ' + interim.replace(/</g, '&lt;'), true);
+      };
+      recog.onerror = function (e) {
+        if (e.error === 'not-allowed') {
+          wakeOn = false; wakeUI(false);
+          subShow('🚫 доступ к микрофону запрещён');
+          termLog('Режим «Джарвис»: микрофон запрещён в браузере.', 'err');
+        }
+      };
+      recog.onend = function () {
+        // Chrome обрывает слушание по тишине — перезапускаем, пока режим включён
+        if (wakeOn) setTimeout(function () { try { recog.start(); } catch (e) {} }, 400);
+        else wakeUI(false);
+      };
+      recog.start();
+    } catch (e) {
+      termLog('Режим «Джарвис» не запустился: ' + e.message, 'err');
+    }
+  }
+
+  if (!SR2) {
+    wakeToggle.disabled = true;
+    wakeToggle.textContent = 'ДЖАРВИС: н/д';
+  } else {
+    wakeUI(false);
+
+    // внешнее выключение (например, перед разовой записью по кнопке СЛУШАТЬ)
+    JARVIS.wakeStop = function (silent) {
+      if (!wakeOn) return;
+      wakeOn = false;
+      try { recog && recog.stop(); } catch (e) {}
+      wakeUI(false);
+      if (sub) sub.classList.remove('show');
+      if (!silent) termLog('Режим «Джарвис» выключен.', 'sys');
+    };
+    JARVIS.wakeIsActive = function () { return wakeOn; };
+
+    wakeToggle.addEventListener('click', function () {
+      if (wakeOn) {
+        JARVIS.wakeStop();
+      } else {
+        if (JARVIS.micStop) JARVIS.micStop();
+        wakeOn = true;
+        wakeUI(true);
+        termLog('Режим «Джарвис» включён — говорите: «Джарвис, …»', 'ok');
+        startWake();
+      }
+    });
+  }
+})();
 
 /* ================================================================
    4. СТАТИСТИКА (каждые 2 секунды)
 ================================================================ */
 (function () {
-  var stats = { cpu: 0, ram: 0, net: 0 };
+  var stats = { cpu: 0, ram: 0, net: 0, disk: null, top: [], cpuHistory: [] };
   function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
-  function update() {
-    stats.cpu = rand(8, 92);
-    stats.ram = rand(25, 85);
-    stats.net = rand(1, 950);
+  // график CPU (canvas, в цвете текущей темы)
+  function drawGraph() {
+    var cv = document.getElementById('cpuGraph');
+    if (!cv) return;
+    var c = cv.getContext('2d');
+    var w = cv.width, h = cv.height;
+    c.clearRect(0, 0, w, h);
+    var rgb = '0,229,255';
+    try {
+      var v = getComputedStyle(document.body).getPropertyValue('--accent-rgb').trim();
+      if (v) rgb = v;
+    } catch (e) {}
 
+    // сетка
+    c.strokeStyle = 'rgba(' + rgb + ',0.12)';
+    c.lineWidth = 1;
+    [0.25, 0.5, 0.75].forEach(function (f) {
+      c.beginPath();
+      c.moveTo(0, h - f * h);
+      c.lineTo(w, h - f * h);
+      c.stroke();
+    });
+
+    var hist = stats.cpuHistory || [];
+    if (hist.length < 2) return;
+
+    // площадь + линия
+    c.beginPath();
+    for (var i = 0; i < hist.length; i++) {
+      var x = (i / (hist.length - 1)) * w;
+      var y = h - 3 - (hist[i] / 100) * (h - 6);
+      if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+    }
+    c.lineTo(w, h);
+    c.lineTo(0, h);
+    c.closePath();
+    var grad = c.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, 'rgba(' + rgb + ',0.4)');
+    grad.addColorStop(1, 'rgba(' + rgb + ',0.02)');
+    c.fillStyle = grad;
+    c.fill();
+
+    c.beginPath();
+    for (var j = 0; j < hist.length; j++) {
+      var x2 = (j / (hist.length - 1)) * w;
+      var y2 = h - 3 - (hist[j] / 100) * (h - 6);
+      if (j === 0) c.moveTo(x2, y2); else c.lineTo(x2, y2);
+    }
+    c.strokeStyle = 'rgba(' + rgb + ',1)';
+    c.lineWidth = 1.6;
+    c.shadowColor = 'rgba(' + rgb + ',0.9)';
+    c.shadowBlur = 6;
+    c.stroke();
+    c.shadowBlur = 0;
+  }
+
+  function renderTop() {
+    var box = document.getElementById('topProcs');
+    if (!box) return;
+    if (!stats.top || !stats.top.length) { box.textContent = '—'; return; }
+    box.innerHTML = stats.top.map(function (p) {
+      return '<div class="top-row"><span class="top-name">' + p.name + '</span>' +
+             '<span class="top-val">' + p.cpu + '%</span>' +
+             '<span class="top-val top-mem">' + p.mem + '%</span></div>';
+    }).join('');
+  }
+
+  function render() {
     document.getElementById('cpuVal').textContent = stats.cpu + '%';
     document.getElementById('cpuBar').style.width = stats.cpu + '%';
     document.getElementById('ramVal').textContent = stats.ram + '%';
     document.getElementById('ramBar').style.width = stats.ram + '%';
     document.getElementById('netVal').textContent = stats.net + ' Mb/s';
-    document.getElementById('netBar').style.width = Math.min(100, Math.round(stats.net / 10)) + '%';
+    document.getElementById('netBar').style.width = Math.min(100, stats.net) + '%';
+    var dEl = document.getElementById('diskVal');
+    if (dEl) {
+      if (stats.disk === null || stats.disk === undefined) {
+        dEl.textContent = '—';
+      } else {
+        dEl.textContent = stats.disk + '%' +
+          (stats.diskUsedGb ? ' · ' + stats.diskUsedGb + '/' + stats.diskTotalGb + ' ГБ' : '');
+        document.getElementById('diskBar').style.width = stats.disk + '%';
+      }
+    }
+    drawGraph();
+    renderTop();
+  }
+
+  // Данные с сервера /api/system, при недоступности — локальная имитация
+  function update() {
+    fetch('/api/system')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        stats.cpu = d.cpu;
+        stats.ram = d.ram;
+        stats.net = d.network;
+        stats.disk = (d.disk === undefined) ? null : d.disk;
+        stats.diskUsedGb = d.diskUsedGb;
+        stats.diskTotalGb = d.diskTotalGb;
+        stats.top = d.top || [];
+        stats.cpuHistory = d.cpuHistory || [];
+        render();
+      })
+      .catch(function () {
+        stats.cpu = rand(5, 92);
+        stats.ram = rand(25, 85);
+        stats.net = rand(5, 95);
+        stats.disk = stats.disk === null ? rand(30, 80) : stats.disk;
+        render();
+      });
   }
 
   update();
@@ -759,7 +2271,15 @@ rainToggle.addEventListener('click', function () {
   var input = document.getElementById('msgInput');
   var sendBtn = document.getElementById('sendBtn');
 
-  function addMsg(text, who) {
+  // --- история чата: хранение в localStorage (последние 50 сообщений) ---
+  var chatHist = [];
+  try { chatHist = JSON.parse(localStorage.getItem('jarvis-chat-hist')) || []; } catch (e) {}
+
+  function saveHist() {
+    try { localStorage.setItem('jarvis-chat-hist', JSON.stringify(chatHist.slice(-50))); } catch (e) {}
+  }
+
+  function addMsg(text, who, silent) {
     var el = document.createElement('div');
     el.className = 'msg ' + (who === 'user' ? 'user' : 'bot');
     var label = document.createElement('span');
@@ -769,22 +2289,94 @@ rainToggle.addEventListener('click', function () {
     el.appendChild(document.createTextNode(text));
     messages.appendChild(el);
     messages.scrollTop = messages.scrollHeight;
+
+    // запись в историю (кроме восстановления после загрузки)
+    if (!silent) {
+      chatHist.push({ w: who === 'user' ? 'u' : 'b', t: String(text).slice(0, 500) });
+      if (chatHist.length > 50) chatHist = chatHist.slice(-50);
+      saveHist();
+      // озвучка ответов Джарвиса (если голос включён)
+      if (who !== 'user' && JARVIS.voiceOn && JARVIS.voiceOn()) JARVIS.speak(text);
+    }
   }
 
+  // восстановление истории при загрузке
+  if (chatHist.length) {
+    messages.innerHTML = '';
+    chatHist.forEach(function (m) { addMsg(m.t, m.w === 'u' ? 'user' : 'bot', true); });
+  }
+
+  // очистка истории
+  var chatClear = document.getElementById('chatClear');
+  if (chatClear) chatClear.addEventListener('click', function () {
+    chatHist = [];
+    try { localStorage.removeItem('jarvis-chat-hist'); } catch (e) {}
+    messages.innerHTML = '<div class="msg bot"><span class="who">J.A.R.V.I.S.</span>История очищена. Все системы работают в штатном режиме.</div>';
+    termLog('История чата очищена.', 'sys');
+  });
+
+  // поиск по истории (фильтрация сообщений на лету)
+  var msgSearch = document.getElementById('msgSearch');
+  if (msgSearch) msgSearch.addEventListener('input', function () {
+    var q = msgSearch.value.trim().toLowerCase();
+    var list = messages.querySelectorAll('.msg');
+    for (var i = 0; i < list.length; i++) {
+      list[i].style.display = !q || list[i].textContent.toLowerCase().indexOf(q) !== -1 ? '' : 'none';
+    }
+  });
+
+  // Отправка в чат: сервер разбирает команду, возвращает ответ и действие
   JARVIS.chatSend = function (text) {
     text = (text || '').trim();
     if (!text) return;
     addMsg(text, 'user');
     input.value = '';
-    setTimeout(function () {
-      addMsg('Команда принята. Выполняю анализ.', 'bot');
-    }, 600);
+
+    // Напоминание/таймер разбираем локально, без запроса к серверу
+    var rem = parseReminder(text);
+    if (rem) {
+      JARVIS.addTimer(rem.sec, rem.msg);
+      setTimeout(function () {
+        addMsg('Напоминание принято: через ' + humanDur(rem.sec) + ' — «' + rem.msg + '».', 'bot');
+      }, 350);
+      return;
+    }
+
+    // индикатор «думаю» (ИИ может думать 2–10 секунд)
+    var ph = document.createElement('div');
+    ph.className = 'msg bot typing';
+    ph.innerHTML = '<span class="who">J.A.R.V.I.S.</span><span class="typing-dots">•••</span>';
+    messages.appendChild(ph);
+    messages.scrollTop = messages.scrollHeight;
+
+    fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: text,
+        history: chatHist.slice(-8) // контекст для ИИ-ответа
+      })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (ph.parentNode) ph.parentNode.removeChild(ph);
+        applyAction(data.action);
+        setTimeout(function () { addMsg(data.reply, 'bot'); }, 300);
+      })
+      .catch(function () {
+        if (ph.parentNode) ph.parentNode.removeChild(ph);
+        // сервер недоступен — автономный ответ
+        setTimeout(function () { addMsg('Команда принята. Выполняю анализ.', 'bot'); }, 600);
+      });
   };
 
   sendBtn.addEventListener('click', function () { JARVIS.chatSend(input.value); });
   input.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') JARVIS.chatSend(input.value);
   });
+
+  // Сообщение бота без запроса на сервер (для кнопок/ядра)
+  JARVIS.botSay = function (text) { addMsg(text, 'bot'); };
 })();
 
 /* ================================================================
@@ -852,9 +2444,20 @@ function showHelp() {
   termLog('  open <url>           — открыть сайт в новой вкладке');
   termLog('  time | date          — текущее время / дата');
   termLog('  echo <текст>         — повторить текст');
+  termLog('  timer <время> <текст>— таймер: 30s | 5m | 1h (timer off — отмена)');
+  termLog('  timers               — список таймеров');
+  termLog('  voice [on|off]       — голос Джарвиса (синтез речи)');
+  termLog('  lock                 — заблокировать экран (Windows)');
+  termLog('  volup | voldown|mute — громкость / без звука (Windows)');
+  termLog('  explorer             — открыть проводник (Windows)');
+  termLog('  sleep                — спящий режим (с подтверждением)');
   termLog('  screenshot           — демо-скриншот');
   termLog('  about                — информация о системе');
   termLog('  clear                — очистить терминал');
+  if (PLUGIN_HELP.length) {
+    termLog('Плагины:', 'ok');
+    for (var pi = 0; pi < PLUGIN_HELP.length; pi++) termLog(PLUGIN_HELP[pi]);
+  }
 }
 
 /* --- обработка команды --- */
@@ -880,7 +2483,52 @@ function runCommand(raw) {
   var cmd = parts[0].toLowerCase();
   var args = parts.slice(1).join(' ');
 
+  // Команды, которые выполняет сервер (/api/terminal)
+  if (SERVER_CMDS.indexOf(cmd) !== -1) {
+    fetch('/api/terminal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ command: raw })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        // Локально применяем состояние (тема/дождь), чтобы UI обновился сразу
+        if (cmd === 'theme' && THEMES.indexOf(args.toLowerCase()) !== -1) {
+          JARVIS.setTheme(args.toLowerCase(), true);
+        }
+        if (cmd === 'rain') {
+          var a = args.toLowerCase();
+          if ((a === 'on' || a === 'вкл') && !JARVIS.rainIsOn()) JARVIS.toggleRain();
+          if ((a === 'off' || a === 'выкл') && JARVIS.rainIsOn()) JARVIS.toggleRain();
+        }
+        if (res.clear) { termOut.innerHTML = ''; return; }
+        var lines = Array.isArray(res.output) ? res.output : [res.output];
+        for (var i = 0; i < lines.length; i++) termLog(lines[i], 'sys');
+      })
+      .catch(function () {
+        // сервер недоступен — локальный фолбэк
+        runLocalCommand(cmd, args);
+      });
+    return;
+  }
+
+  runLocalCommand(cmd, args);
+}
+
+// Локальные команды терминала (работают и без сервера)
+function runLocalCommand(cmd, args) {
   switch (cmd) {
+    // Фолбэки серверных команд (без сервера)
+    case 'ping': {
+      var ms = 5 + Math.floor(Math.random() * 36);
+      termLog('Проверка сети... пинг ' + ms + ' мс, потерь 0%', 'ok');
+      break;
+    }
+    case 'status':
+      termLog('Статус: online', 'ok');
+      termLog('Тема: ' + document.body.getAttribute('data-theme') + ' | Дождь: ' + (JARVIS.rainIsOn() ? 'вкл' : 'выкл'));
+      break;
+
     case 'help':
     case '?':
       showHelp();
@@ -973,6 +2621,121 @@ function runCommand(raw) {
       termLog('Доступ разрешён. Вы и так главный здесь.', 'ok');
       break;
 
+    case 'timer':
+    case 'таймер': {
+      if (!args) { termLog('Пример: timer 5m кофе | timer 18:30 созвон | timers | timer off', 'err'); break; }
+      var lowArgs = args.toLowerCase();
+      if (lowArgs === 'off' || lowArgs === 'cancel' || lowArgs === 'выкл' || lowArgs === 'отмена') {
+        var act = timers.filter(function (t) { return !t.fired; });
+        if (!act.length) { termLog('Активных таймеров нет.', 'sys'); break; }
+        act.forEach(function (t) { JARVIS.cancelTimer(t.id); });
+        break;
+      }
+      // абсолютное время: timer 18:30 текст
+      var tmHm = args.match(/^(\d{1,2}):(\d{2})(?:\s+|,|-|—)*([\s\S]*)$/);
+      if (tmHm && parseInt(tmHm[1], 10) <= 23 && parseInt(tmHm[2], 10) <= 59) {
+        var tmSec0 = hhmmToSec(parseInt(tmHm[1], 10), parseInt(tmHm[2], 10));
+        var tmMsg0 = (tmHm[3] || '').trim();
+        JARVIS.addTimer(tmSec0, tmMsg0 || 'Напоминание на ' + tmHm[1] + ':' + tmHm[2]);
+        break;
+      }
+      var tm = args.match(/^(\d+)\s*([а-яa-z]+)?(?:\s+|,|-|—)*([\s\S]*)$/i);
+      if (!tm) { termLog('Формат: timer 90s текст | timer 5m текст | timer 1h текст', 'err'); break; }
+      var tmMult = unitToSec(tm[2] || '');
+      var tmSec, tmMsg;
+      if (tmMult === null) { // единица неизвестна — считаем число секундами, слово — часть текста
+        tmSec = parseInt(tm[1], 10);
+        tmMsg = ((tm[2] ? tm[2] + ' ' : '') + (tm[3] || '')).trim();
+      } else {
+        tmSec = parseInt(tm[1], 10) * tmMult;
+        tmMsg = (tm[3] || '').trim();
+      }
+      if (!tmSec || tmSec <= 0) { termLog('Время должно быть больше нуля.', 'err'); break; }
+      JARVIS.addTimer(tmSec, tmMsg || 'Таймер на ' + humanDur(tmSec));
+      break;
+    }
+
+    case 'timers':
+    case 'таймеры': {
+      var actList = timers.filter(function (t) { return !t.fired; });
+      if (!actList.length) { termLog('Активных таймеров нет.', 'sys'); break; }
+      actList.forEach(function (t) {
+        termLog('  #' + String(t.id).replace(/^s/, '') + '  ' + fmtLeft(t.endsAt - Date.now()) + '  — ' + t.msg, 'ok');
+      });
+      break;
+    }
+
+    case 'запомни':
+    case 'remember': {
+      if (!args) { termLog('Пример: запомни купить молоко', 'err'); break; }
+      fetch('/api/memory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: args })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d.status === 'ok') { termLog('Записал в память: «' + args + '»', 'ok'); if (typeof loadMem === 'function') loadMem(); }
+          else termLog('Не удалось записать в память.', 'err');
+        })
+        .catch(function () { termLog('Сервер недоступен — память не сохранена.', 'err'); });
+      break;
+    }
+
+    case 'память':
+    case 'memory':
+    case 'вспомни': {
+      fetch('/api/memory')
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          var arr = d.notes || [];
+          if (!arr.length) { termLog('Память пуста.', 'sys'); return; }
+          termLog('Записей: ' + arr.length, 'ok');
+          arr.slice(-15).forEach(function (n) { termLog('  #' + n.id + '  ' + n.text, 'sys'); });
+        })
+        .catch(function () { termLog('Сервер недоступен.', 'err'); });
+      break;
+    }
+
+    // --- команды ПК из терминала (п.13 плана) ---
+    case 'lock':
+    case 'замок':
+      JARVIS.callCommand('lock', function () { termLog('Замок: нужен Windows-сервер.', 'err'); });
+      break;
+
+    case 'volup':
+      JARVIS.callCommand('volume_up', function () { termLog('Громкость+: нужен Windows-сервер.', 'err'); });
+      break;
+
+    case 'voldown':
+      JARVIS.callCommand('volume_down', function () { termLog('Громкость−: нужен Windows-сервер.', 'err'); });
+      break;
+
+    case 'mute':
+    case 'звук':
+      JARVIS.callCommand('mute', function () { termLog('MUTE: нужен Windows-сервер.', 'err'); });
+      break;
+
+    case 'explorer':
+    case 'проводник':
+      JARVIS.callCommand('explorer', function () { termLog('Проводник: нужен Windows-сервер.', 'err'); });
+      break;
+
+    case 'sleep':
+    case 'сон':
+      if (!confirm('Перевести компьютер в спящий режим?')) break;
+      JARVIS.callCommand('sleep_pc', function () { termLog('Сон: нужен Windows-сервер.', 'err'); });
+      break;
+
+    case 'voice':
+    case 'голос': {
+      var v = (args || '').toLowerCase();
+      if (v === 'on' || v === 'вкл') JARVIS.setVoice(true);
+      else if (v === 'off' || v === 'выкл') JARVIS.setVoice(false);
+      else termLog('Голос: ' + (JARVIS.voiceOn() ? 'вкл' : 'выкл') + '. Переключение: voice on | voice off', 'sys');
+      break;
+    }
+
     default:
       termLog('Неизвестная команда: ' + cmd + '. Введи help.', 'err');
   }
@@ -980,11 +2743,36 @@ function runCommand(raw) {
 
 JARVIS.runCommand = runCommand;
 
+// история команд терминала (localStorage, навигация стрелками ↑↓)
+var termHist = [];
+try { termHist = JSON.parse(localStorage.getItem('jarvis-term-hist')) || []; } catch (e) {}
+var termHistIdx = termHist.length;
+function pushTermHist(v) {
+  v = (v || '').trim();
+  if (!v) return;
+  if (termHist[termHist.length - 1] !== v) termHist.push(v);
+  if (termHist.length > 30) termHist.shift();
+  try { localStorage.setItem('jarvis-term-hist', JSON.stringify(termHist)); } catch (e) {}
+  termHistIdx = termHist.length;
+}
+
 termInput.addEventListener('keydown', function (e) {
   if (e.key === 'Enter') {
     var v = termInput.value;
     termInput.value = '';
+    pushTermHist(v);
     runCommand(v);
+  } else if (e.key === 'ArrowUp') {
+    // навигация по истории команд
+    if (!termHist.length) return;
+    e.preventDefault();
+    termHistIdx = Math.max(0, termHistIdx - 1);
+    termInput.value = termHist[termHistIdx] || '';
+  } else if (e.key === 'ArrowDown') {
+    if (!termHist.length) return;
+    e.preventDefault();
+    termHistIdx = Math.min(termHist.length, termHistIdx + 1);
+    termInput.value = termHist[termHistIdx] || '';
   }
 });
 
@@ -992,15 +2780,42 @@ termInput.addEventListener('keydown', function (e) {
    7. БЫСТРЫЕ КОМАНДЫ (реальные действия)
 ================================================================ */
 (function () {
+  // Вызов API быстрой команды; при недоступности — локальное действие
+  function callCommand(action, fallback) {
+    fetch('/api/command', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: action })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res.status === 'ok') termLog(res.message, 'ok');
+        else termLog(res.message, 'err');
+        if (action === 'system_scan' && res.status === 'ok' && typeof res.message === 'string') {
+          var lines = res.message.split('\n');
+          for (var i = 0; i < lines.length; i++) if (lines[i]) termLog('  ' + lines[i], 'sys');
+        }
+      })
+      .catch(function () {
+        if (fallback) fallback();
+        termLog('Сервер недоступен — локальный режим.', 'err');
+      });
+  }
+  JARVIS.callCommand = callCommand; // используется также в терминале (п.13)
+
   var ACTIONS = {
     browser: function () {
-      window.open('https://www.google.com', '_blank', 'noopener');
-      termLog('Запуск браузера -> https://www.google.com', 'ok');
+      callCommand('open_browser', function () {
+        window.open('https://www.google.com', '_blank', 'noopener');
+        termLog('Запуск браузера (локально) -> https://www.google.com', 'ok');
+      });
       JARVIS.chatSend('Открываю браузер.');
     },
     game: function () {
-      startGame();
-      termLog('Игра: я загадал число от 1 до 100. Введи число.', 'ok');
+      callCommand('launch_game', function () {
+        startGame();
+        termLog('Игра: я загадал число от 1 до 100. Введи число.', 'ok');
+      });
       JARVIS.chatSend('Игра запущена в терминале.');
       termInput.focus();
     },
@@ -1009,12 +2824,11 @@ termInput.addEventListener('keydown', function (e) {
       flash.classList.remove('go');
       void flash.offsetWidth;
       flash.classList.add('go');
-      var name = 'screenshot_' + Date.now() + '.png';
-      termLog('Скриншот сохранён: C:\\Screenshots\\' + name + ' (демо-режим)', 'ok');
-      JARVIS.chatSend('Скриншот выполнен: ' + name);
+      callCommand('screenshot', null);
+      JARVIS.chatSend('Скриншот выполнен.');
     },
     scan: function () {
-      runScan();
+      callCommand('system_scan', function () { runScan(); });
       JARVIS.chatSend('Запускаю сканирование системы.');
     },
     theme: function () {
@@ -1026,19 +2840,1936 @@ termInput.addEventListener('keydown', function (e) {
       JARVIS.toggleRain();
       termLog('Кибер-дождь: ' + (JARVIS.rainIsOn() ? 'включён' : 'выключен'), 'ok');
       JARVIS.chatSend('Кибер-дождь ' + (JARVIS.rainIsOn() ? 'включён' : 'выключен') + '.');
+    },
+    // --- действия с ПК (п.13 плана) ---
+    lock: function () {
+      callCommand('lock', function () { termLog('Замок: нужен Windows-сервер.', 'err'); });
+    },
+    volup: function () {
+      callCommand('volume_up', function () { termLog('Громкость: нужен Windows-сервер.', 'err'); });
+    },
+    voldown: function () {
+      callCommand('volume_down', function () { termLog('Громкость: нужен Windows-сервер.', 'err'); });
+    },
+    mute: function () {
+      callCommand('mute', function () { termLog('MUTE: нужен Windows-сервер.', 'err'); });
+    },
+    explorer: function () {
+      callCommand('explorer', function () { termLog('Проводник: нужен Windows-сервер.', 'err'); });
+    },
+    sleep: function () {
+      if (!confirm('Перевести компьютер в спящий режим?')) return;
+      callCommand('sleep_pc', function () { termLog('Сон: нужен Windows-сервер.', 'err'); });
     }
   };
 
-  document.querySelectorAll('.qbtn').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var fn = ACTIONS[btn.getAttribute('data-action')];
-      if (fn) fn();
+  // --- редактируемый список кнопок (п.4 плана) ---
+  var DEFAULT_Q = [
+    { label: 'Открыть браузер', action: 'browser' },
+    { label: 'Запустить игру', action: 'game' },
+    { label: 'Скриншот', action: 'screenshot' },
+    { label: 'Сканирование системы', action: 'scan' },
+    { label: 'Сменить тему', action: 'theme' },
+    { label: 'Переключить дождь', action: 'rain' },
+    // новые кнопки (п.13) — дозаписываются к уже сохранённому списку
+    { label: '🔒 Замок', action: 'lock' },
+    { label: '🔊 Громкость +', action: 'volup' },
+    { label: '🔉 Громкость −', action: 'voldown' },
+    { label: '📁 Проводник', action: 'explorer' }
+  ];
+  var quickBox = document.querySelector('.quick');
+  var qEditBtn = document.getElementById('qEdit');
+  var editMode = false;
+  var quickList;
+  try { quickList = JSON.parse(localStorage.getItem('jarvis-quick')); } catch (e) {}
+  if (!Array.isArray(quickList) || !quickList.length) quickList = DEFAULT_Q.slice();
+  else {
+    // миграция: добавляем новые дефолтные кнопки, которых нет в сохранённом списке
+    var had = {};
+    quickList.forEach(function (q) { had[q.action || q.label] = true; });
+    var changed = false;
+    DEFAULT_Q.forEach(function (d) {
+      if (!had[d.action]) { quickList.push(d); changed = true; }
+    });
+    if (changed) saveQuickLater();
+  }
+  function saveQuickLater() {
+    try { localStorage.setItem('jarvis-quick', JSON.stringify(quickList)); } catch (e) {}
+  }
+
+  function saveQuick() {
+    try { localStorage.setItem('jarvis-quick', JSON.stringify(quickList)); } catch (e) {}
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function renderQuick() {
+    if (!quickBox) return;
+    var html = '';
+    quickList.forEach(function (q, i) {
+      html += '<button class="qbtn" data-i="' + i + '" title="' + esc(q.text || q.action || '') + '">' +
+              (editMode ? '<span class="q-x">✕</span>' : '◈ ') + esc(q.label) + '</button>';
+    });
+    if (editMode) html += '<button class="qbtn q-add" data-add="1">＋ Добавить команду</button>';
+    quickBox.innerHTML = html;
+  }
+
+  if (quickBox) quickBox.addEventListener('click', function (e) {
+    var tgt = e.target;
+    if (tgt.closest && tgt.closest('[data-add]')) {
+      var label = prompt('Название кнопки:');
+      if (!label || !label.trim()) return;
+      var text = prompt('Команда — этот текст уйдёт в чат Джарвису:');
+      if (!text || !text.trim()) return;
+      quickList.push({ label: label.trim().slice(0, 30), text: text.trim().slice(0, 120) });
+      saveQuick(); renderQuick();
+      termLog('Добавлена быстрая команда: «' + label.trim() + '»', 'ok');
+      return;
+    }
+    var btn = tgt.closest ? tgt.closest('.qbtn') : null;
+    if (!btn) return;
+    var i = parseInt(btn.getAttribute('data-i'), 10);
+    var q = quickList[i];
+    if (!q) return;
+    if (editMode) {
+      if (confirm('Удалить кнопку «' + q.label + '»?')) {
+        quickList.splice(i, 1);
+        saveQuick(); renderQuick();
+        termLog('Кнопка удалена: ' + q.label, 'sys');
+      }
+      return;
+    }
+    if (q.action && ACTIONS[q.action]) ACTIONS[q.action]();
+    else if (q.text) { termLog('Быстрая команда: ' + q.text, 'sys'); JARVIS.chatSend(q.text); }
+  });
+
+  if (qEditBtn) qEditBtn.addEventListener('click', function () {
+    editMode = !editMode;
+    qEditBtn.textContent = editMode ? '✓ ГОТОВО' : '⚙';
+    qEditBtn.classList.toggle('off', !editMode);
+    renderQuick();
+    if (editMode) termLog('Режим редактирования: ✕ — удалить кнопку, «＋ Добавить» — новая.', 'sys');
+  });
+
+  renderQuick();
+})();
+
+/* ================================================================
+   8. ИНТЕРАКТИВНОЕ ЯДРО
+================================================================ */
+(function () {
+  var coreWrap = document.getElementById('coreWrap');
+  var coreStage = document.getElementById('coreStage');
+  var core = document.getElementById('core');
+  var label = document.getElementById('coreLabel');
+  if (!core) return;
+
+  var boostTimer = null;   // таймер возврата из режима ускорения
+  var pulseCount = 0;      // счётчик импульсов
+
+  /* --- Кольца: JS-вращение с плавным синхронным разгоном ---
+     При наведении множитель скорости растёт ЛИНЕЙНО со 1x до текущего
+     потолка за 3 секунды, все три кольца разгоняются синхронно.
+     При уходе курсора — так же равномерно сбрасывается за 3 сек.
+     КАЖДЫЙ КЛИК поднимает потолок скорости — ядро разгоняется всё сильнее. */
+  var SPEED_MIN = 1;       // обычный режим
+  var SPEED_STEP = 1.5;    // на сколько каждый клик поднимает потолок
+  var SPEED_CAP = 25;      // абсолютный предел множителя
+  var SPEED_MAX = 4;       // текущий потолок (растёт с кликами)
+  var RAMP_TIME = 3;       // секунд на разгон / торможение
+  var speed = SPEED_MIN;   // текущий множитель
+  var hovered = false;
+  var overloaded = false;  // флаг перегрузки (взрыв)
+
+  var rings = [
+    { el: core.querySelector('.ring.r1'), period: 9,    dir: 1,  angle: 0 },
+    { el: core.querySelector('.ring.r2'), period: 6,    dir: -1, angle: 0 },
+    { el: core.querySelector('.ring.r3'), period: 14,   dir: 1,  angle: 0 }
+  ];
+
+  core.addEventListener('mouseenter', function () { hovered = true; });
+  core.addEventListener('mouseleave', function () { hovered = false; });
+
+  var lastTime = performance.now();
+  function spinFrame(now) {
+    var dt = Math.min((now - lastTime) / 1000, 0.1); // защита от скачков
+    lastTime = now;
+
+    // равномерный разгон/торможение: (MAX-MIN)/RAMP_TIME за секунду
+    var step = (SPEED_MAX - SPEED_MIN) / RAMP_TIME * dt;
+    if (hovered) {
+      speed = Math.min(SPEED_MAX, speed + step);
+    } else {
+      speed = Math.max(SPEED_MIN, speed - step);
+    }
+
+    // достигнут абсолютный предел — перегрузка и взрыв
+    if (!overloaded && speed >= SPEED_CAP - 0.001) overload();
+
+    for (var i = 0; i < rings.length; i++) {
+      var r = rings[i];
+      r.angle = (r.angle + (360 / r.period) * r.dir * speed * dt) % 360;
+      r.el.style.transform = 'rotate(' + r.angle + 'deg)';
+    }
+    requestAnimationFrame(spinFrame);
+  }
+  requestAnimationFrame(spinFrame);
+
+  // --- Наведение: ядро слегка наклоняется к курсору (параллакс) ---
+  coreWrap.addEventListener('mousemove', function (e) {
+    var r = coreWrap.getBoundingClientRect();
+    var dx = (e.clientX - r.left - r.width / 2) / r.width;   // -0.5..0.5
+    var dy = (e.clientY - r.top - r.height / 2) / r.height;
+    coreStage.style.transform =
+      'translate(' + (dx * 26).toFixed(1) + 'px,' + (dy * 26).toFixed(1) + 'px)';
+  });
+  coreWrap.addEventListener('mouseleave', function () {
+    coreStage.style.transform = 'translate(0,0)';
+  });
+
+  // --- Клик: ударная волна + подъём потолка скорости ---
+  core.addEventListener('click', function () {
+    if (overloaded) return; // во время взрыва клики игнорируются
+    pulseCount++;
+
+    // ударная волна (новый элемент каждый клик)
+    var wave = document.createElement('div');
+    wave.className = 'shockwave';
+    core.appendChild(wave);
+    setTimeout(function () { wave.remove(); }, 850);
+
+    // каждый клик сильнее: потолок растёт, текущая скорость подскакивает
+    SPEED_MAX = Math.min(SPEED_CAP, SPEED_MAX + SPEED_STEP);
+    speed = Math.min(SPEED_MAX, speed + SPEED_STEP * 0.5);
+
+    // предел достигнут — ЯДРО ПЕРЕГРУЖЕНО, взрыв
+    if (SPEED_MAX >= SPEED_CAP) { overload(); return; }
+
+    // режим ускорения на 2 секунды
+    core.classList.add('boost');
+    label.textContent = 'Core Reactor — Pulse #' + pulseCount + ' · x' + speed.toFixed(1);
+    clearTimeout(boostTimer);
+    boostTimer = setTimeout(function () {
+      core.classList.remove('boost');
+      label.textContent = 'Core Reactor — Active · max x' + SPEED_MAX.toFixed(1);
+    }, 2000);
+
+    termLog('Ядро: импульс #' + pulseCount + ' — разгон до x' + SPEED_MAX.toFixed(1), 'ok');
+
+    // каждые 3-й клик — реплика в чат
+    if (pulseCount % 3 === 0 && JARVIS.botSay) {
+      JARVIS.botSay('Импульс #' + pulseCount + ' принят. Мощность ядра растёт — x' + SPEED_MAX.toFixed(1) + ', сэр.');
+    }
+  });
+
+  // --- ВЗРЫВ ЯДРА при максимальной скорости ---
+  function overload() {
+    if (overloaded) return;
+    overloaded = true;
+    clearTimeout(boostTimer);
+    core.classList.remove('boost');
+    core.classList.add('overload');
+
+    // красное предупреждение
+    label.textContent = '⚠ ЯДРО ПЕРЕГРУЖЕНО ⚠';
+    termLog('!!! ВНИМАНИЕ: ЯДРО ПЕРЕГРУЖЕНО (x' + SPEED_CAP.toFixed(1) + ') !!!', 'err');
+    termLog('Запуск аварийного разряда...', 'err');
+    if (JARVIS.botSay) {
+      JARVIS.botSay('Внимание, сэр! Ядро перегружено! Инициирую аварийный разряд!');
+    }
+
+    // взрыв: огненная сфера (2.2 сек) + двойная вспышка экрана
+    var boom = document.createElement('div');
+    boom.className = 'explosion';
+    core.appendChild(boom);
+    var flash = document.getElementById('flash');
+    flash.classList.remove('go');
+    void flash.offsetWidth;
+    flash.classList.add('go');
+    // вторая волна вспышки для мощности
+    setTimeout(function () {
+      flash.classList.remove('go');
+      void flash.offsetWidth;
+      flash.classList.add('go');
+    }, 500);
+
+    setTimeout(function () { boom.remove(); }, 2300);
+
+    // длительная перезагрузка (5 сек): ядро остается аварийным
+    setTimeout(function () {
+      label.textContent = 'Core Reactor — Rebooting...';
+      termLog('Перезагрузка ядра...', 'sys');
+    }, 2400);
+
+    // полный сброс после взрыва — можно копить снова
+    setTimeout(function () {
+      core.classList.remove('overload');
+      SPEED_MAX = 4;
+      speed = SPEED_MIN;
+      pulseCount = 0;
+      label.textContent = 'Core Reactor — Rebooted';
+      termLog('Ядро перезагружено. Мощность сброшена до x4.', 'ok');
+      if (JARVIS.botSay) JARVIS.botSay('Аварийный разряд завершён. Ядро перезапущено, все системы в норме.');
+      overloaded = false;
+      setTimeout(function () {
+        if (!overloaded && !core.classList.contains('boost')) {
+          label.textContent = 'Core Reactor — Active · max x' + SPEED_MAX.toFixed(1);
+        }
+      }, 3000);
+    }, 5000);
+  }
+
+  // --- Двойной клик: быстрая смена темы ---
+  core.addEventListener('dblclick', function (e) {
+    e.preventDefault();
+    if (overloaded) return; // во время взрыва не переключаем тему
+    var t = JARVIS.nextTheme();
+    termLog('Ядро: двойной импульс → тема ' + t, 'ok');
+    if (JARVIS.botSay) JARVIS.botSay('Переключаю тему интерфейса: ' + t + '.');
+    // синхронизация с сервером (тихо)
+    fetch('/api/terminal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ command: 'theme ' + t })
+    }).catch(function () {});
+  });
+
+  // --- Периодическое «дыхание» подписи раз в 10 сек ---
+  var phrases = ['Core Reactor — Active', 'Core Reactor — Stable', 'Core Reactor — Nominal'];
+  var phraseIdx = 0;
+  setInterval(function () {
+    if (core.classList.contains('boost')) return; // не мешаем режиму ускорения
+    phraseIdx = (phraseIdx + 1) % phrases.length;
+    label.textContent = phrases[phraseIdx] + ' · max x' + SPEED_MAX.toFixed(1);
+  }, 10000);
+})();
+
+/* ================================================================
+   9. ВКЛАДКИ ВНИЗУ САЙТА
+================================================================ */
+(function () {
+  var nav = document.querySelector('.tabs-nav');
+  if (!nav) return;
+
+  // переключение вкладок
+  nav.addEventListener('click', function (e) {
+    var btn = e.target.closest('.tab-btn');
+    if (!btn) return;
+    var id = btn.getAttribute('data-tab');
+
+    nav.querySelectorAll('.tab-btn').forEach(function (b) {
+      b.classList.toggle('active', b === btn);
+    });
+    document.querySelectorAll('.tab-content').forEach(function (c) {
+      c.classList.toggle('active', c.id === 'tab-' + id);
+    });
+
+    // при открытии журнала — сразу подтянуть логи
+    if (id === 'logs') loadLogs();
+  });
+
+  // журнал событий с сервера
+  var logsLoaded = false;
+  function loadLogs() {
+    fetch('/api/state')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var box = document.getElementById('tabLogs');
+        var logs = d.logs || [];
+        if (!logs.length) {
+          box.innerHTML = '<div class="log-line">Журнал пуст. События появятся после действий.</div>';
+          return;
+        }
+        box.innerHTML = logs.map(function (l) {
+          return '<div class="log-line"></div>';
+        }).join('');
+        var lines = box.querySelectorAll('.log-line');
+        logs.forEach(function (l, i) { lines[i].textContent = l; });
+        logsLoaded = true;
+      })
+      .catch(function () {
+        var box = document.getElementById('tabLogs');
+        box.innerHTML = '<div class="log-line err">Сервер недоступен — журнал недоступен (автономный режим).</div>';
+      });
+  }
+
+  // автообновление журнала раз в 5 сек (только пока вкладка открыта)
+  setInterval(function () {
+    var active = document.querySelector('.tab-btn.active');
+    if (active && active.getAttribute('data-tab') === 'logs') loadLogs();
+  }, 5000);
+})();
+
+/* ================================================================
+   10. ТАЙМЕРЫ И НАПОМИНАНИЯ
+================================================================ */
+var timers = [];    // {id, endsAt, msg, fired}
+var timerSeq = 0;
+
+// единица времени → множитель секунд; '' = секунды, null = неизвестно
+function unitToSec(u) {
+  if (!u) return 1;
+  var s = u.toLowerCase();
+  if (s === 's' || s === 'sec' || s === 'с' || s.indexOf('сек') === 0 || s.indexOf('second') === 0) return 1;
+  if (s === 'm' || s === 'min' || s === 'м' || s.indexOf('мин') === 0 || s.indexOf('minute') === 0) return 60;
+  if (s === 'h' || s === 'hr' || s === 'ч' || s.indexOf('час') === 0 || s.indexOf('hour') === 0) return 3600;
+  if (s === 'd' || s === 'day' || s.indexOf('дн') === 0 || s.indexOf('день') === 0 || s.indexOf('day') === 0) return 86400;
+  return null;
+}
+
+// человекочитаемая длительность: 1 ч 5 мин 3 сек
+function humanDur(sec) {
+  var h = Math.floor(sec / 3600),
+      m = Math.floor((sec % 3600) / 60),
+      s = sec % 60,
+      out = [];
+  if (h) out.push(h + ' ч');
+  if (m) out.push(m + ' мин');
+  if (s || !out.length) out.push(s + ' сек');
+  return out.join(' ');
+}
+
+// обратный отсчёт: 04:32 / 1:04:32
+function fmtLeft(ms) {
+  var total = Math.max(0, Math.ceil(ms / 1000));
+  var h = Math.floor(total / 3600),
+      m = Math.floor((total % 3600) / 60),
+      s = total % 60;
+  var mm = (h ? (m < 10 ? '0' + m : '' + m) : (m < 10 ? '0' + m : '' + m));
+  var ss = s < 10 ? '0' + s : '' + s;
+  return (h ? h + ':' : '') + mm + ':' + ss;
+}
+
+// секунды до наступления времени HH:MM (сегодня, либо завтра, если уже прошло)
+function hhmmToSec(hh, mm) {
+  var now = new Date();
+  var tgt = new Date();
+  tgt.setHours(hh, mm, 0, 0);
+  if (tgt.getTime() <= now.getTime() + 1000) tgt.setDate(tgt.getDate() + 1);
+  return Math.round((tgt.getTime() - now.getTime()) / 1000);
+}
+
+// разбор фразы-напоминания в чате
+function parseReminder(text) {
+  text = text || '';
+  // абсолютное время: «напомни в 18:30 позвонить» → превращаем в «через N sec»
+  var hm = text.match(/\b(?:в|at)\s+(\d{1,2}):(\d{2})\b/i);
+  if (hm) {
+    var hh = parseInt(hm[1], 10), mm = parseInt(hm[2], 10);
+    if (hh <= 23 && mm <= 59) {
+      var sec0 = hhmmToSec(hh, mm);
+      if (sec0 > 0 && sec0 < 86400) text = text.replace(hm[0], ' через ' + sec0 + ' sec');
+    }
+  }
+  var m = (text || '').match(/^(?:напомни|напоминание|напомни-ка|таймер|timer|remind)\s+(?:мне\s+|me\s+)?(?:через\s+|in\s+)?(\d+)\s*([а-яa-z]+)?(?:\s+|,|-|—)*([\s\S]*)$/i);
+  if (!m) return null;
+  var mult = unitToSec(m[2] || '');
+  var sec, msg;
+  if (mult === null) {
+    // неизвестная единица — считаем секундами, слово остаётся частью текста
+    sec = parseInt(m[1], 10);
+    msg = ((m[2] ? m[2] + ' ' : '') + (m[3] || '')).trim();
+  } else {
+    sec = parseInt(m[1], 10) * mult;
+    msg = (m[3] || '').trim();
+  }
+  if (!sec || sec <= 0) return null;
+  return { sec: sec, msg: msg || 'Напоминание' };
+}
+
+function saveTimers() {
+  try {
+    localStorage.setItem('jarvis-timers', JSON.stringify(
+      timers.filter(function (t) { return !t.fired && typeof t.id === 'number'; })
+            .map(function (t) { return { id: t.id, endsAt: t.endsAt, msg: t.msg }; })
+    ));
+  } catch (e) {}
+}
+
+function fireTimer(t, overdue) {
+  termLog('⏰ ВРЕМЯ ВЫШЛО: «' + t.msg + '»' + (overdue ? ' (пришло за время вашего отсутствия)' : ''), 'ok');
+  if (JARVIS.botSay) JARVIS.botSay('⏰ Напоминание: ' + t.msg);
+  showAlert('⏰ ' + t.msg);
+  beep();
+  var flash = document.getElementById('flash');
+  if (flash) {
+    flash.classList.remove('go');
+    void flash.offsetWidth;
+    flash.classList.add('go');
+  }
+  try {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('J.A.R.V.I.S. — Напоминание', { body: t.msg });
+    }
+  } catch (e) {}
+}
+
+function showAlert(text) {
+  var el = document.querySelector('.timer-alert');
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'timer-alert';
+    document.body.appendChild(el);
+  }
+  var b = document.createElement('b');
+  b.textContent = '⏰';
+  var span = document.createElement('span');
+  span.textContent = text;
+  el.innerHTML = '';
+  el.appendChild(b);
+  el.appendChild(span);
+  requestAnimationFrame(function () { el.classList.add('show'); });
+  clearTimeout(el._hide);
+  el._hide = setTimeout(function () { el.classList.remove('show'); }, 8000);
+  el.onclick = function () { el.classList.remove('show'); };
+}
+
+// три коротких сигнала (WebAudio, без файлов)
+function beep() {
+  try {
+    var Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    beep.ctx = beep.ctx || new Ctx();
+    var ctx = beep.ctx;
+    if (ctx.state === 'suspended') ctx.resume();
+    [0, 0.25, 0.5].forEach(function (d) {
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'square';
+      o.frequency.value = d === 0.5 ? 1318.5 : 880;
+      o.connect(g);
+      g.connect(ctx.destination);
+      var t0 = ctx.currentTime + d;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.15, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.2);
+      o.start(t0);
+      o.stop(t0 + 0.22);
+    });
+  } catch (e) {}
+}
+
+function renderTimers() {
+  var box = document.getElementById('timerList');
+  if (!box) return;
+  box.innerHTML = '';
+  if (!timers.length) {
+    var e = document.createElement('div');
+    e.className = 'timer-empty';
+    e.textContent = 'Активных таймеров нет. Например: 5m — кофе';
+    box.appendChild(e);
+    return;
+  }
+  var now = Date.now();
+  timers.forEach(function (t) {
+    var item = document.createElement('div');
+    item.className = 'timer-item' + (t.fired ? ' done' : '');
+
+    var left = document.createElement('span');
+    left.className = 'timer-left';
+    left.textContent = t.fired ? '✓ сработало' : fmtLeft(t.endsAt - now);
+
+    var msg = document.createElement('span');
+    msg.className = 'timer-msg';
+    msg.textContent = '#' + String(t.id).replace(/^s/, '') + ' · ' + t.msg;
+
+    var btn = document.createElement('button');
+    btn.className = 'timer-cancel';
+    btn.textContent = '✕';
+    btn.title = 'Отменить';
+    btn.setAttribute('data-id', t.id);
+
+    item.appendChild(left);
+    item.appendChild(msg);
+    item.appendChild(btn);
+    box.appendChild(item);
+  });
+}
+
+JARVIS.addTimer = function (sec, msg) {
+  var t = { id: ++timerSeq, endsAt: Date.now() + sec * 1000, msg: msg, fired: false };
+  timers.push(t);
+  saveTimers();
+  renderTimers();
+  termLog('Таймер #' + t.id + ' запущен: ' + humanDur(sec) + ' → «' + msg + '»', 'ok');
+  // синхронизация с сервером (п.6): таймер переживает закрытие вкладки,
+  // id подменяется на серверный ('s5'), локально остаётся только численный
+  try {
+    fetch('/api/timers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sec: sec, msg: msg })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && d.timer) {
+          t.id = 's' + d.timer.id;
+          t.endsAt = d.timer.endsAt;
+          renderTimers();
+        }
+      })
+      .catch(function () {}); // сервер недоступен — работаем локально
+  } catch (e) {}
+  try {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  } catch (e) {}
+  return t;
+};
+
+JARVIS.cancelTimer = function (id) {
+  var found = false;
+  timers = timers.filter(function (t) {
+    if (t.id === id && !t.fired) { found = true; return false; }
+    return true;
+  });
+  if (found) {
+    saveTimers();
+    renderTimers();
+    termLog('Таймер #' + String(id).replace(/^s/, '') + ' отменён', 'sys');
+    // серверный таймер — отменить на сервере
+    if (typeof id === 'string' && id.charAt(0) === 's') {
+      try { fetch('/api/timers/' + encodeURIComponent(id.slice(1)), { method: 'DELETE' }).catch(function () {}); } catch (e) {}
+    }
+  }
+};
+
+function loadTimers() {
+  try {
+    var arr = JSON.parse(localStorage.getItem('jarvis-timers') || '[]');
+    timers = (Array.isArray(arr) ? arr : []).map(function (t) {
+      return { id: t.id, endsAt: t.endsAt, msg: t.msg || 'Напоминание', fired: false };
+    }).filter(function (t) { return t.endsAt; });
+    timers.forEach(function (t) { if (t.id > timerSeq) timerSeq = t.id; });
+    var now = Date.now();
+    timers.forEach(function (t) {
+      if (now >= t.endsAt) { t.fired = true; fireTimer(t, true); }
+    });
+    saveTimers();
+    renderTimers();
+  } catch (e) {}
+}
+
+// клик по крестику в списке (делегирование)
+(function () {
+  var box = document.getElementById('timerList');
+  if (!box) return;
+  box.addEventListener('click', function (e) {
+    var b = e.target.closest('.timer-cancel');
+    if (b) {
+      var raw = b.getAttribute('data-id');
+      JARVIS.cancelTimer(raw.charAt(0) === 's' ? raw : parseInt(raw, 10));
+    }
+  });
+})();
+
+// форма на вкладке «Таймеры»
+(function () {
+  var dur = document.getElementById('timerDur');
+  var msg = document.getElementById('timerMsg');
+  var add = document.getElementById('timerAdd');
+  if (!add) return;
+
+  function addFromForm() {
+    var raw = (dur.value || '').trim();
+    if (!raw) { termLog('Укажи время: 30s | 5m | 1h | 18:30', 'err'); return; }
+    // абсолютное время: 18:30
+    var hm = raw.match(/^(\d{1,2}):(\d{2})$/);
+    if (hm) {
+      var h = parseInt(hm[1], 10), m = parseInt(hm[2], 10);
+      if (h > 23 || m > 59) { termLog('Некорректное время: ' + raw, 'err'); return; }
+      var s0 = hhmmToSec(h, m);
+      JARVIS.addTimer(s0, (msg.value || '').trim() || 'Напоминание на ' + hm[1] + ':' + hm[2]);
+      dur.value = ''; msg.value = '';
+      return;
+    }
+    var m = raw.match(/^(\d+)\s*([а-яa-z]+)?$/i);
+    if (!m) { termLog('Формат времени: 30s | 5m | 1h | 90 (сек)', 'err'); return; }
+    var mult = unitToSec(m[2] || '');
+    if (mult === null) { termLog('Неизвестная единица: ' + m[2] + ' (s | m | h | сек | мин | час)', 'err'); return; }
+    var sec = parseInt(m[1], 10) * mult;
+    if (!sec || sec <= 0) { termLog('Время должно быть больше нуля.', 'err'); return; }
+    JARVIS.addTimer(sec, (msg.value || '').trim() || 'Таймер на ' + humanDur(sec));
+    dur.value = '';
+    msg.value = '';
+    var list = document.getElementById('timerList');
+    if (list) list.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  add.addEventListener('click', addFromForm);
+  dur.addEventListener('keydown', function (e) { if (e.key === 'Enter') addFromForm(); });
+  msg.addEventListener('keydown', function (e) { if (e.key === 'Enter') addFromForm(); });
+})();
+
+// тик: срабатывание + обновление обратного отсчёта
+setInterval(function () {
+  var now = Date.now(), changed = false;
+  for (var i = 0; i < timers.length; i++) {
+    var t = timers[i];
+    if (!t.fired && now >= t.endsAt) { t.fired = true; changed = true; fireTimer(t, false); }
+  }
+  if (changed) saveTimers();
+  renderTimers();
+}, 500);
+
+loadTimers();
+
+// --- синхронизация с серверными таймерами (п.6 плана) ---
+// GET /api/timers каждые 1.5 с: общий список для всех вкладок и устройств;
+// локальные копии главнее (тик сработает сам), серверный id — 's5'.
+function syncServerTimers() {
+  fetch('/api/timers')
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (!d || !Array.isArray(d.timers)) return;
+      var now = Date.now();
+      var byId = {}, byKey = {};
+      timers.forEach(function (t) {
+        byId[t.id] = t;
+        byKey[t.msg + '#' + Math.round(t.endsAt / 3000)] = t;
+      });
+      var out = d.timers.map(function (st) {
+        var id = 's' + st.id;
+        var loc = byId[id];
+        if (!loc) {
+          // наш только что добавленный таймер (id ещё не подменился) — переиспользуем
+          loc = byKey[st.msg + '#' + Math.round(st.endsAt / 3000)];
+          if (loc) loc.id = id;
+        }
+        if (loc) return loc;
+        // заведён в другой вкладке/устройстве
+        if (st.fired) {
+          // сработал меньше минуты назад — оповестить и эту вкладку
+          if (now - st.endsAt < 60000) return { id: id, endsAt: st.endsAt, msg: st.msg, fired: false };
+          return { id: id, endsAt: st.endsAt, msg: st.msg, fired: true };
+        }
+        return { id: id, endsAt: st.endsAt, msg: st.msg, fired: false };
+      });
+      // офлайн-локальные (сервер молчал) не выбрасываем
+      timers.forEach(function (t) {
+        if (t.fired) return;
+        var found = out.some(function (o) {
+          return o.id === t.id || (o.msg === t.msg && Math.abs(o.endsAt - t.endsAt) < 3000);
+        });
+        if (!found) out.push(t);
+      });
+      timers = out;
+      saveTimers();
+      renderTimers();
+    })
+    .catch(function () {}); // сервер недоступен — живём на localStorage
+}
+syncServerTimers();
+setInterval(syncServerTimers, 1500);
+
+/* ================================================================
+   11. ПОГОДА В АСТАНЕ И НОВОСТИ ИИ
+================================================================ */
+
+/* --- погода в Астане: сейчас, прогноз на 7 дней, почасово (Open-Meteo) --- */
+(function () {
+  var box = document.getElementById('weatherBox');
+  if (!box) return;
+
+  // коды погоды WMO → описание + значок
+  var WMO = {
+    0: ['Ясно', '☀'], 1: ['Малооблачно', '🌤'], 2: ['Переменная облачность', '🌤'],
+    3: ['Пасмурно', '☁'], 45: ['Туман', '🌫'], 48: ['Изморозь, туман', '🌫'],
+    51: ['Лёгкая морось', '🌦'], 53: ['Морось', '🌦'], 55: ['Сильная морось', '🌧'],
+    56: ['Ледяная морось', '🌧'], 57: ['Сильная ледяная морось', '🌧'],
+    61: ['Дождь', '🌧'], 63: ['Дождь', '🌧'], 65: ['Сильный дождь', '🌧'],
+    66: ['Ледяной дождь', '🌧'], 67: ['Сильный ледяной дождь', '🌧'],
+    71: ['Снег', '🌨'], 73: ['Снег', '🌨'], 75: ['Сильный снег', '🌨'],
+    77: ['Снежинки', '🌨'], 80: ['Ливень', '🌦'], 81: ['Сильный ливень', '🌦'],
+    82: ['Очень сильный ливень', '🌧'], 85: ['Снегопад', '🌨'], 86: ['Сильный снегопад', '🌨'],
+    95: ['Гроза', '⛈'], 96: ['Гроза с градом', '⛈'], 99: ['Сильная гроза с градом', '⛈']
+  };
+  var DAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+  var data = null;   // последний ответ API
+  var selDay = 0;    // выбранный день прогноза (0 = сегодня)
+
+  function wmo(code) { return WMO[code] || ['Неизвестно', '•']; }
+  function fmtDateShort(ds) { return ds.slice(8, 10) + '.' + ds.slice(5, 7); }
+
+  function isSnowCode(c) { return (c >= 71 && c <= 77) || c === 85 || c === 86; }
+  function isPrecipCode(c) {
+    return (c >= 51 && c <= 67) || (c >= 80 && c <= 82) || isSnowCode(c) || c >= 95;
+  }
+
+  // реакция кибер-дождя на реальную погоду + уведомление об осадках
+  function applyWeatherFX() {
+    if (!data || !data.current) return;
+    var code = data.current.weather_code;
+    var fx = 'clear';
+    var notify = null;   // {time, prob, snow}
+
+    if (isSnowCode(code)) fx = 'snow';
+    else if (isPrecipCode(code)) fx = (code === 65 || code === 67 || code === 82 ||
+                                       code === 95 || code >= 96 || code === 55 || code === 57)
+                                      ? 'heavy' : 'rain';
+    else if (data.hourly) {
+      // смотрим ближайшие 3 часа
+      var h = data.hourly;
+      var now = (data.current.time || '').slice(0, 13);
+      var start = -1;
+      for (var i = 0; i < h.time.length; i++) {
+        if (h.time[i].slice(0, 13) > now) { start = i; break; }
+      }
+      for (var j = start; j >= 0 && j < h.time.length; j++) {
+        if (j - start > 3) break;
+        if ((h.precipitation_probability[j] || 0) >= 55) {
+          var snow = isSnowCode(h.weather_code[j]);
+          fx = snow ? 'snow' : 'rain';
+          notify = { time: h.time[j].slice(11, 16), prob: h.precipitation_probability[j], snow: snow };
+          break;
+        }
+      }
+    }
+
+    if (JARVIS.setRainFX) JARVIS.setRainFX(fx);
+
+    // данные для виджета в шапке (п.9)
+    JARVIS.weatherInfo = {
+      temp: data.current.temperature_2m,
+      code: code,
+      desc: wmo(code)[0],
+      icon: wmo(code)[1]
+    };
+
+    // одноразовое уведомление (sessionStorage — не долбит при каждой перезагрузке)
+    if (notify) {
+      try {
+        if (sessionStorage.getItem('jarvis-precip-note') !== notify.time) {
+          sessionStorage.setItem('jarvis-precip-note', notify.time);
+          var word = notify.snow ? 'Снег' : 'Дождь';
+          var msg = word + ' ожидается около ' + notify.time +
+                    ' (вероятность ' + notify.prob + '%), сэр.';
+          if (typeof termLog === 'function') termLog('Погода: ' + msg, 'sys');
+          setTimeout(function () {
+            if (JARVIS.botSay) JARVIS.botSay('🌧 ' + msg);
+          }, 900);
+        }
+      } catch (e) {}
+    }
+  }
+
+  function load() {
+    fetch('https://api.open-meteo.com/v1/forecast?latitude=51.1694&longitude=71.4491' +
+          '&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,weather_code' +
+          '&hourly=temperature_2m,precipitation_probability,weather_code' +
+          '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset' +
+          '&timezone=Asia%2FAlmaty&forecast_days=7')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.current || !d.daily) throw new Error('no data');
+        data = d;
+        if (selDay >= d.daily.time.length) selDay = 0;
+        applyWeatherFX();
+        render();
+      })
+      .catch(function () {
+        box.innerHTML = '<div class="err-line">Не удалось получить погоду — проверьте подключение к сети.</div>';
+      });
+  }
+
+  function render() {
+    var c = data.current, daily = data.daily;
+    var w = wmo(c.weather_code);
+    var localTime = (c.time || '').slice(11, 16);
+    var sunrise = (daily.sunrise[0] || '').slice(11, 16);
+    var sunset = (daily.sunset[0] || '').slice(11, 16);
+
+    // сейчас
+    var html =
+      '<div class="weather-main">' +
+        '<div class="weather-icon">' + w[1] + '</div>' +
+        '<div>' +
+          '<div class="weather-city">Астана' + (localTime ? ' · ' + localTime + ' (местное)' : '') + '</div>' +
+          '<div class="weather-temp">' + Math.round(c.temperature_2m) + '°C</div>' +
+          '<div class="weather-desc">' + w[0] + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="weather-grid">' +
+        '<div class="weather-cell">Ощущается<b>' + Math.round(c.apparent_temperature) + '°C</b></div>' +
+        '<div class="weather-cell">Влажность<b>' + Math.round(c.relative_humidity_2m) + '%</b></div>' +
+        '<div class="weather-cell">Ветер<b>' + Math.round(c.wind_speed_10m) + ' м/с</b></div>' +
+        '<div class="weather-cell">Восход<b>' + (sunrise || '—') + '</b></div>' +
+        '<div class="weather-cell">Заход<b>' + (sunset || '—') + '</b></div>' +
+        '<div class="weather-cell">Макс. сегодня<b>' + Math.round(daily.temperature_2m_max[0]) + '°C</b></div>' +
+      '</div>';
+
+    // прогноз по дням (клик — почасовой прогноз на этот день)
+    html += '<div class="wx-title">Прогноз на ' + daily.time.length +
+            ' дней — клик по дню, чтобы увидеть погоду по часам</div>';
+    html += '<div class="wx-days">';
+    daily.time.forEach(function (date, i) {
+      var dw = wmo(daily.weather_code[i]);
+      var dow = DAYS[new Date(date + 'T00:00:00').getDay()];
+      html += '<div class="wx-day' + (i === selDay ? ' sel' : '') + '" data-i="' + i + '">' +
+                '<div class="d-name">' + (i === 0 ? 'Сегодня' : dow) + '</div>' +
+                '<div class="d-num">' + fmtDateShort(date) + '</div>' +
+                '<div class="d-ico">' + dw[1] + '</div>' +
+                '<div class="d-temp"><b>' + Math.round(daily.temperature_2m_max[i]) + '°</b> ' +
+                  '<span>' + Math.round(daily.temperature_2m_min[i]) + '°</span></div>' +
+                '<div class="d-precip">💧 ' + (daily.precipitation_probability_max[i] || 0) + '%</div>' +
+              '</div>';
+    });
+    html += '</div>';
+
+    // почасовой блок
+    var selDate = daily.time[selDay];
+    var selName = selDay === 0 ? 'сегодня' :
+      (DAYS[new Date(selDate + 'T00:00:00').getDay()] + ', ' + fmtDateShort(selDate));
+    html += '<div class="wx-title">По часам · ' + selName + ' (местное время Астаны)</div>';
+    html += '<div class="wx-hours" id="wxHours"></div>';
+    html += '<div class="weather-updated">Open-Meteo · обновляется каждые 10 минут</div>';
+
+    box.innerHTML = html;
+    renderHours(selDate);
+  }
+
+  // лента часов выбранного дня
+  function renderHours(date) {
+    var strip = document.getElementById('wxHours');
+    if (!strip || !data || !data.hourly) return;
+    var hours = data.hourly;
+    var curHour = (data.current.time || '').slice(0, 13);   // YYYY-MM-DDTHH
+    var isToday = date === data.daily.time[0];
+    var out = '';
+
+    for (var i = 0; i < hours.time.length; i++) {
+      var t = hours.time[i];
+      if (t.slice(0, 10) !== date) continue;
+      // у сегодняшнего дня пропускаем прошедшие часы
+      if (isToday && t.slice(0, 13) < curHour) continue;
+
+      var hw = wmo(hours.weather_code[i]);
+      var isNow = t.slice(0, 13) === curHour;
+      var precip = hours.precipitation_probability[i];
+      out += '<div class="wx-hour' + (isNow ? ' now' : '') + '">' +
+               '<div class="h-time">' + t.slice(11, 16) + '</div>' +
+               '<div class="h-ico">' + hw[1] + '</div>' +
+               '<div class="h-t">' + Math.round(hours.temperature_2m[i]) + '°</div>' +
+               '<div class="h-precip">' + (precip === null || precip === undefined ? '—' : precip + '%') + '</div>' +
+             '</div>';
+    }
+    strip.innerHTML = out || '<div class="load-line">Нет данных по часам</div>';
+
+    // прокрутка ленты к текущему часу (для сегодняшнего дня)
+    var nowEl = strip.querySelector('.now');
+    if (nowEl) strip.scrollLeft = nowEl.offsetLeft - strip.clientWidth / 2 + nowEl.clientWidth / 2;
+  }
+
+  // клик по карточке дня → почасовой прогноз на этот день
+  box.addEventListener('click', function (e) {
+    var d = e.target.closest('.wx-day');
+    if (!d || !data) return;
+    var idx = parseInt(d.getAttribute('data-i'), 10);
+    if (isNaN(idx) || idx === selDay) return;
+    selDay = idx;
+    render();
+  });
+
+  load();
+  setInterval(load, 10 * 60 * 1000);
+})();
+
+/* --- новости об ИИ: X (FxTwitter) + Hacker News + DEV.to, без ключей --- */
+(function () {
+  var box = document.getElementById('newsBox');
+  if (!box) return;
+
+  // аккаунты X с новостями об ИИ
+  var X_ACCOUNTS = ['OpenAI', 'AnthropicAI', 'GoogleDeepMind', 'sama'];
+
+  function fmtDate(iso) {
+    try {
+      var dt = new Date(iso);
+      return dt.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) + ' ' +
+             dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    } catch (e) { return ''; }
+  }
+
+  function load() {
+    box.innerHTML = '<div class="load-line">Загрузка новостей об ИИ...</div>';
+
+    // ленты аккаунтов X (публичный FxTwitter API, CORS-открыт)
+    var xJobs = X_ACCOUNTS.map(function (handle) {
+      return fetch('https://api.fxtwitter.com/2/profile/' + handle + '/statuses?count=5')
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          return (d.results || [])
+            .filter(function (s) { return s.type === 'status' && s.text; })
+            .map(function (s) {
+              var txt = String(s.text).replace(/\s+/g, ' ').trim();
+              if (txt.length > 160) txt = txt.slice(0, 160) + '…';
+              var ts = s.created_timestamp ? new Date(s.created_timestamp * 1000).toISOString() : new Date().toISOString();
+              return {
+                title: txt,
+                url: s.url,
+                date: ts,
+                src: 'X',
+                author: (s.author && s.author.screen_name) ? '@' + s.author.screen_name : '@' + handle
+              };
+            });
+        })
+        .catch(function () { return []; });
+    });
+
+    var hn = fetch('https://hn.algolia.com/api/v1/search_by_date?query=AI&tags=story&hitsPerPage=8')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        return (d.hits || [])
+          .filter(function (h) { return h.title && h.url; })
+          .map(function (h) {
+            return { title: h.title, url: h.url, date: h.created_at, src: 'HN' };
+          });
+      })
+      .catch(function () { return []; });
+
+    var dev = fetch('https://dev.to/api/articles?tag=ai&per_page=6')
+      .then(function (r) { return r.json(); })
+      .then(function (arr) {
+        return (Array.isArray(arr) ? arr : []).map(function (x) {
+          return { title: x.title, url: x.url, date: x.published_at, src: 'DEV' };
+        });
+      })
+      .catch(function () { return []; });
+
+    Promise.all(xJobs.concat([hn, dev])).then(function (res) {
+      var all = [];
+      res.forEach(function (part) { all = all.concat(part); });
+
+      // дедупликация по ссылке, сортировка по дате, лимит 10
+      var seen = {};
+      all = all.filter(function (n) {
+        if (!n.url || seen[n.url]) return false;
+        seen[n.url] = 1;
+        return true;
+      }).sort(function (a, b) {
+        return new Date(b.date) - new Date(a.date);
+      }).slice(0, 10);
+
+      if (!all.length) {
+        box.innerHTML = '<div class="err-line">Новости недоступны — проверьте подключение к сети.</div>';
+        return;
+      }
+
+      box.innerHTML = '';
+      all.forEach(function (n) {
+        var item = document.createElement('div');
+        item.className = 'news-item';
+
+        var src = document.createElement('span');
+        src.className = 'news-src' + (n.src === 'DEV' ? ' dev' : (n.src === 'X' ? ' x' : ''));
+        src.textContent = n.src;
+        item.appendChild(src);
+
+        if (n.author) {
+          var author = document.createElement('span');
+          author.className = 'news-author';
+          author.textContent = n.author;
+          item.appendChild(author);
+        }
+
+        var a = document.createElement('a');
+        a.href = n.url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.textContent = n.title;
+        item.appendChild(a);
+
+        var date = document.createElement('span');
+        date.className = 'news-date';
+        date.textContent = fmtDate(n.date);
+        item.appendChild(date);
+
+        box.appendChild(item);
+      });
+    });
+  }
+
+  load();
+  setInterval(load, 15 * 60 * 1000);
+})();
+
+/* ================================================================
+   11.0.5. ВИДЖЕТ ПОГОДЫ В ШАПКЕ (п.9 плана)
+   Данные берём из JARVIS.weatherInfo (их обновляет секция «Погода»
+   каждые 10 минут) — сеть не дублируем.
+================================================================ */
+(function () {
+  var chip = document.getElementById('wxChip');
+  if (!chip) return;
+  var ico = document.getElementById('wxChipIco');
+  var temp = document.getElementById('wxChipTemp');
+
+  function refresh() {
+    var w = JARVIS.weatherInfo;
+    if (!w || typeof w.temp !== 'number') return;
+    ico.textContent = w.icon || '🌡';
+    temp.textContent = Math.round(w.temp) + '°C';
+    chip.title = 'Астана: ' + (w.desc || '') + ' — клик, чтобы открыть подробности';
+    chip.style.display = '';
+  }
+
+  chip.addEventListener('click', function () {
+    var box = document.getElementById('weatherBox');
+    if (box) box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  refresh();               // если погода уже успела загрузиться
+  setInterval(refresh, 15000); // и дальше подхватываем обновления
+})();
+
+/* ================================================================
+   11.1. МОДУЛЬ ПАМЯТИ — вкладка «Память» (п.8 плана)
+================================================================ */
+function loadMem() {
+  var box = document.getElementById('memList');
+  if (!box) return;
+  fetch('/api/memory')
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var arr = (d && d.notes) || [];
+      if (!arr.length) {
+        box.innerHTML = '<div class="timer-empty">Память пуста. Скажите «запомни …» — и я сохраню.</div>';
+        return;
+      }
+      box.innerHTML = arr.map(function (n) {
+        var dt = new Date(n.addedAt);
+        var ds = dt.toLocaleDateString('ru-RU') + ' ' + dt.toTimeString().slice(0, 5);
+        return '<div class="mem-item">' +
+                 '<span class="mem-text">' + escMem(n.text) + '</span>' +
+                 '<span class="mem-date">' + ds + '</span>' +
+                 '<button class="timer-cancel mem-del" data-id="' + n.id + '" title="Удалить">✕</button>' +
+               '</div>';
+      }).join('');
+    })
+    .catch(function () {
+      box.innerHTML = '<div class="err-line">Сервер недоступен — память не загружена.</div>';
+    });
+}
+function escMem(s) {
+  return String(s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  });
+}
+JARVIS.loadMem = loadMem;
+
+(function () {
+  var input = document.getElementById('memInput');
+  var add = document.getElementById('memAdd');
+  var box = document.getElementById('memList');
+
+  function addNote() {
+    var text = input ? input.value.trim() : '';
+    if (!text) { termLog('Введите, что запомнить.', 'err'); return; }
+    fetch('/api/memory', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.status === 'ok') {
+          termLog('Память: записано «' + text + '»', 'ok');
+          if (input) input.value = '';
+          loadMem();
+        }
+      })
+      .catch(function () { termLog('Сервер недоступен — память не сохранена.', 'err'); });
+  }
+
+  if (add) add.addEventListener('click', addNote);
+  if (input) input.addEventListener('keydown', function (e) { if (e.key === 'Enter') addNote(); });
+
+  // удаление записи
+  if (box) box.addEventListener('click', function (e) {
+    var b = e.target.closest('.mem-del');
+    if (!b) return;
+    fetch('/api/memory/' + encodeURIComponent(b.getAttribute('data-id')), { method: 'DELETE' })
+      .then(function () { loadMem(); })
+      .catch(function () {});
+  });
+
+  // обновлять при открытии вкладки «Память»
+  var tabBtn = document.querySelector('.tab-btn[data-tab="memory"]');
+  if (tabBtn) tabBtn.addEventListener('click', function () { setTimeout(loadMem, 60); });
+
+  loadMem();
+})();
+
+/* ================================================================
+   12. ИГРА «NEON RUNNER» (вкладка «Игра»)
+   Клон динозаврика Chrome в стилистике сайта: неон, свечение,
+   кибер-капли на фоне, дроны вместо птиц, спайки вместо кактусов.
+================================================================ */
+(function () {
+  var canvas = document.getElementById('dinoCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+  var GROUND = 200;          // линия земли
+
+  var state = 'idle';        // idle | run | over
+  var distance = 0, score = 0, best = 0;
+  var speed = 300;           // px/сек, растёт со временем
+  var spawnDist = 400;       // остаток дистанции до спавна
+  var obstacles = [];        // {x, w, h, type, y?}
+  var t = 0, gameOverAt = 0, last = performance.now();
+  var accent = '0,255,255';  // кэш текущей темы (--accent-rgb)
+  var accentT = 0;
+
+  var player = { x: 70, y: GROUND, vy: 0, onGround: true, duck: false };
+
+  // фоновые неоновые «капли» (перекликаются с кибер-дождём)
+  var rainBg = [];
+  for (var i = 0; i < 26; i++) {
+    rainBg.push({
+      x: Math.random() * W, y: Math.random() * H,
+      len: 8 + Math.random() * 14, v: 60 + Math.random() * 90
+    });
+  }
+
+  try { best = parseInt(localStorage.getItem('jarvis-runner-best'), 10) || 0; } catch (e) {}
+
+  function isActive() {
+    var b = document.querySelector('.tab-btn.active');
+    if (!b || b.getAttribute('data-tab') !== 'game') return false;
+    // игровой зал: раннер работает только в своём виде (п.14)
+    return (JARVIS.gameView || 'runner') === 'runner';
+  }
+  function inInput() {
+    var el = document.activeElement;
+    var tag = el ? el.tagName : '';
+    return tag === 'INPUT' || tag === 'TEXTAREA';
+  }
+
+  // короткий сигнал (тот же AudioContext, что у таймеров)
+  function tone(freq, dur) {
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      if (!beep.ctx) beep.ctx = new Ctx();
+      var ac = beep.ctx;
+      if (ac.state === 'suspended') ac.resume();
+      var o = ac.createOscillator(), g = ac.createGain();
+      o.type = 'square';
+      o.frequency.value = freq;
+      o.connect(g); g.connect(ac.destination);
+      var t0 = ac.currentTime;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.1, t0 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.start(t0); o.stop(t0 + dur + 0.02);
+    } catch (e) {}
+  }
+
+  function reset() {
+    state = 'idle';
+    distance = 0; score = 0; speed = 300; spawnDist = 400;
+    obstacles = [];
+    player.y = GROUND; player.vy = 0; player.onGround = true; player.duck = false;
+  }
+
+  function jump() {
+    if (state === 'over') {
+      if (Date.now() - gameOverAt < 400) return; // короткая пауза после смерти
+      reset(); state = 'run'; tone(680, 0.08);
+      return;
+    }
+    if (state === 'idle') state = 'run';
+    if (player.onGround) {
+      player.vy = -640;         // высота прыжка ~108 px
+      player.onGround = false;
+      player.duck = false;
+      tone(760, 0.07);
+    }
+  }
+
+  function setDuck(on) {
+    if (state !== 'run') return;
+    if (on && !player.onGround) { player.vy += 800; return; } // быстрое падение
+    player.duck = on && player.onGround;
+  }
+
+  function spawn() {
+    var r = Math.random();
+    if (speed > 430 && r < 0.28) {
+      obstacles.push({ x: W + 20, w: 44, h: 16, y: GROUND - 46, type: 'drone' });
+    } else if (r < 0.55) {
+      obstacles.push({ x: W + 20, w: 18, h: 34, type: 'spike' });
+    } else if (r < 0.8) {
+      obstacles.push({ x: W + 20, w: 46, h: 34, type: 'spikes' });
+    } else {
+      obstacles.push({ x: W + 20, w: 24, h: 48, type: 'pylon' });
+    }
+    spawnDist = 460 + Math.random() * 400; // дистанция в px, не в секундах
+  }
+
+  function hit(o) {
+    var hh = player.duck ? 20 : 36;
+    var ww = player.duck ? 40 : 26;
+    var pl = player.x + 3, pr = player.x + ww - 3;
+    var pt = player.y - hh + 3, pb = player.y - 2;
+    var ot = (o.type === 'drone') ? o.y : GROUND - o.h;
+    var ob = (o.type === 'drone') ? o.y + o.h : GROUND;
+    var ol = o.x + 2, orr = o.x + o.w - 2;
+    return pl < orr && pr > ol && pt < ob && pb > ot;
+  }
+
+  function gameOver() {
+    state = 'over';
+    gameOverAt = Date.now();
+    tone(220, 0.22);
+    setTimeout(function () { tone(140, 0.3); }, 170);
+    var isRec = score > best;
+    if (isRec) {
+      best = score;
+      try { localStorage.setItem('jarvis-runner-best', String(best)); } catch (e) {}
+    }
+    termLog('Neon Runner: счёт ' + score + (isRec ? ' — НОВЫЙ РЕКОРД!' : ' · рекорд ' + best),
+            isRec ? 'ok' : 'sys');
+    if (isRec && JARVIS.botSay) JARVIS.botSay('Новый рекорд в Neon Runner: ' + best + ' очков, сэр!');
+    if (score > 0 && JARVIS.postScore) JARVIS.postScore('runner', score); // таблица на сервере (п.14)
+  }
+
+  function update(dt) {
+    t += dt;
+
+    // фоновые капли живут всегда
+    for (var i = 0; i < rainBg.length; i++) {
+      var d = rainBg[i];
+      d.y += d.v * dt;
+      d.x -= speed * 0.15 * dt;
+      if (d.y > H) { d.y = -d.len; d.x = Math.random() * W; }
+      if (d.x < -12) d.x = W + 12;
+    }
+
+    if (state !== 'run') return;
+
+    speed = Math.min(950, speed + 14 * dt);   // разгон: +14 px/сек за секунду
+    distance += speed * dt;
+    score = Math.floor(distance / 10);
+
+    // физика игрока
+    player.vy += 1900 * dt;
+    player.y += player.vy * dt;
+    if (player.y >= GROUND) { player.y = GROUND; player.vy = 0; player.onGround = true; }
+
+    // спавн и движение препятствий
+    spawnDist -= speed * dt;
+    if (spawnDist <= 0) spawn();
+
+    for (var j = obstacles.length - 1; j >= 0; j--) {
+      var o = obstacles[j];
+      o.x -= speed * dt;
+      if (o.x + o.w < -20) { obstacles.splice(j, 1); continue; }
+      if (hit(o)) { gameOver(); return; }
+    }
+  }
+
+  function rrect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function draw() {
+    var rgb = accent;
+    var danger = '255,85,119';
+    ctx.clearRect(0, 0, W, H);
+
+    // фоновые неоновые капли
+    ctx.save();
+    ctx.strokeStyle = 'rgba(' + rgb + ',0.13)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (var i = 0; i < rainBg.length; i++) {
+      var d = rainBg[i];
+      ctx.moveTo(d.x, d.y);
+      ctx.lineTo(d.x - 2, d.y + d.len);
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    // земля + бегущие насечки
+    ctx.save();
+    ctx.shadowColor = 'rgba(' + rgb + ',1)';
+    ctx.shadowBlur = 12;
+    ctx.strokeStyle = 'rgba(' + rgb + ',0.9)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, GROUND + 1); ctx.lineTo(W, GROUND + 1); ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(' + rgb + ',0.35)';
+    var off = distance % 48;
+    ctx.beginPath();
+    for (var x = -off; x < W; x += 48) {
+      ctx.moveTo(x, GROUND + 9); ctx.lineTo(x + 14, GROUND + 9);
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    // препятствия
+    ctx.save();
+    ctx.shadowColor = 'rgba(' + danger + ',0.9)';
+    ctx.shadowBlur = 10;
+    ctx.strokeStyle = 'rgba(' + danger + ',1)';
+    ctx.fillStyle = 'rgba(' + danger + ',0.15)';
+    ctx.lineWidth = 2;
+    for (var k = 0; k < obstacles.length; k++) {
+      var o = obstacles[k];
+      if (o.type === 'drone') {
+        var oy = o.y;
+        rrect(o.x, oy, o.w, o.h, 6);
+        ctx.fill(); ctx.stroke();
+        // винты
+        ctx.beginPath();
+        ctx.moveTo(o.x + 6, oy - 4); ctx.lineTo(o.x + 16, oy - 4);
+        ctx.moveTo(o.x + o.w - 16, oy - 4); ctx.lineTo(o.x + o.w - 6, oy - 4);
+        ctx.stroke();
+        // мигающий глаз
+        ctx.fillStyle = Math.floor(t * 6) % 2 ? 'rgba(' + danger + ',1)' : 'rgba(' + danger + ',0.3)';
+        ctx.fillRect(o.x + o.w - 12, oy + 5, 5, 5);
+        ctx.fillStyle = 'rgba(' + danger + ',0.15)';
+      } else if (o.type === 'pylon') {
+        ctx.beginPath();
+        ctx.moveTo(o.x, GROUND);
+        ctx.lineTo(o.x + o.w / 2, GROUND - o.h);
+        ctx.lineTo(o.x + o.w, GROUND);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+      } else {
+        // один/два спайка
+        var n = o.w > 30 ? 2 : 1;
+        var sw = o.w / n;
+        for (var s = 0; s < n; s++) {
+          ctx.beginPath();
+          ctx.moveTo(o.x + s * sw + 1, GROUND);
+          ctx.lineTo(o.x + s * sw + sw / 2, GROUND - o.h);
+          ctx.lineTo(o.x + s * sw + sw - 1, GROUND);
+          ctx.closePath();
+          ctx.fill(); ctx.stroke();
+        }
+      }
+    }
+    ctx.restore();
+
+    // игрок — неон-бот
+    var hh = player.duck ? 20 : 36;
+    var ww = player.duck ? 40 : 26;
+    ctx.save();
+    ctx.shadowColor = 'rgba(' + rgb + ',1)';
+    ctx.shadowBlur = 14;
+    ctx.strokeStyle = 'rgba(' + rgb + ',1)';
+    ctx.fillStyle = 'rgba(' + rgb + ',0.12)';
+    ctx.lineWidth = 2;
+    rrect(player.x, player.y - hh, ww, hh, 5);
+    ctx.fill(); ctx.stroke();
+    // визор
+    ctx.fillStyle = 'rgba(' + rgb + ',1)';
+    ctx.fillRect(player.x + ww - 12, player.y - hh + 6, 8, 4);
+    // антенка
+    ctx.beginPath();
+    ctx.moveTo(player.x + 6, player.y - hh);
+    ctx.lineTo(player.x + 6, player.y - hh - 6);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(player.x + 6, player.y - hh - 8, 2, 0, Math.PI * 2);
+    ctx.fillStyle = Math.floor(t * 3) % 2 ? 'rgba(' + rgb + ',1)' : 'rgba(' + rgb + ',0.3)';
+    ctx.fill();
+    ctx.restore();
+
+    // HUD
+    ctx.save();
+    ctx.font = '700 15px Consolas, monospace';
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(' + rgb + ',1)';
+    ctx.shadowColor = 'rgba(' + rgb + ',0.8)';
+    ctx.shadowBlur = 8;
+    ctx.fillText('SCORE ' + score, W - 16, 26);
+    ctx.fillStyle = 'rgba(125,255,203,0.95)';
+    ctx.fillText('HI ' + best, W - 16, 47);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(' + rgb + ',0.75)';
+    ctx.fillText('SPEED x' + (speed / 300).toFixed(1), 16, 26);
+    ctx.restore();
+
+    // подсказки старт/конец
+    ctx.save();
+    ctx.textAlign = 'center';
+    if (state === 'idle') {
+      var a = 0.5 + 0.5 * Math.sin(t * 4);
+      ctx.fillStyle = 'rgba(' + rgb + ',' + a.toFixed(2) + ')';
+      ctx.font = '700 20px Consolas, monospace';
+      ctx.fillText('SPACE ИЛИ КЛИК — СТАРТ', W / 2, 90);
+      ctx.font = '13px Consolas, monospace';
+      ctx.fillStyle = 'rgba(' + rgb + ',0.5)';
+      ctx.fillText('▲ прыжок · ▼ пригнуться', W / 2, 114);
+    } else if (state === 'over') {
+      ctx.fillStyle = 'rgba(' + danger + ',1)';
+      ctx.shadowColor = 'rgba(' + danger + ',0.9)';
+      ctx.shadowBlur = 14;
+      ctx.font = '700 26px Consolas, monospace';
+      ctx.fillText('GAME OVER', W / 2, 88);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(' + rgb + ',0.9)';
+      ctx.font = '15px Consolas, monospace';
+      ctx.fillText('счёт ' + score + ' · рекорд ' + best, W / 2, 114);
+      ctx.fillStyle = 'rgba(' + rgb + ',0.55)';
+      ctx.font = '13px Consolas, monospace';
+      ctx.fillText('SPACE / КЛИК — ЗАНОВО', W / 2, 138);
+    }
+    ctx.restore();
+  }
+
+  function frame(now) {
+    requestAnimationFrame(frame);
+    if (!isActive()) { last = now; return; }   // вкладка неактивна — пауза
+    var dt = Math.min(0.05, (now - last) / 1000 || 0.016);
+    last = now;
+
+    // кэш цвета темы (перекрашивание в реальном времени)
+    accentT -= dt;
+    if (accentT <= 0) {
+      accentT = 0.5;
+      var v = getComputedStyle(document.body).getPropertyValue('--accent-rgb').trim();
+      if (v) accent = v;
+    }
+
+    update(dt);
+    draw();
+  }
+  requestAnimationFrame(frame);
+
+  // клавиатура (только пока открыта вкладка «Игра» и не жмут текст в инпутах)
+  document.addEventListener('keydown', function (e) {
+    if (!isActive() || inInput()) return;
+    if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); jump(); }
+    else if (e.code === 'ArrowDown') { e.preventDefault(); setDuck(true); }
+  });
+  document.addEventListener('keyup', function (e) {
+    if (e.code === 'ArrowDown') player.duck = false;
+  });
+
+  // мышь/тач по canvas — прыжок
+  canvas.addEventListener('pointerdown', function (e) { e.preventDefault(); jump(); });
+
+  // экранные кнопки (для телефона)
+  var jumpBtn = document.getElementById('dinoJump');
+  var duckBtn = document.getElementById('dinoDuck');
+  var restartBtn = document.getElementById('dinoRestart');
+  if (jumpBtn) jumpBtn.addEventListener('pointerdown', function (e) { e.preventDefault(); jump(); });
+  if (duckBtn) {
+    duckBtn.addEventListener('pointerdown', function (e) { e.preventDefault(); setDuck(true); });
+    duckBtn.addEventListener('pointerup', function () { player.duck = false; });
+    duckBtn.addEventListener('pointerleave', function () { player.duck = false; });
+  }
+  if (restartBtn) restartBtn.addEventListener('click', function () { reset(); tone(680, 0.08); });
+})();
+
+/* ================================================================
+   12.05. ИГРОВОЙ ЗАЛ (п.14): переключатель, рекорды, Memory, Snake
+=============================================================== */
+
+// --- позывной и серверная таблица рекордов ---
+JARVIS.gameView = 'runner';
+
+function playerName() {
+  var n = null;
+  try { n = localStorage.getItem('jarvis-player'); } catch (e) {}
+  if (!n) {
+    n = prompt('Ваш позывной для таблицы рекордов:', 'Дан');
+    if (n) { try { localStorage.setItem('jarvis-player', n); } catch (e) {} }
+  }
+  return n || 'Аноним';
+}
+
+function renderLb(top) {
+  var box = document.getElementById('lbList');
+  if (!box) return;
+  if (!top || !top.length) { box.innerHTML = '<div class="lb-empty">рекордов пока нет — будьте первым!</div>'; return; }
+  box.innerHTML = top.map(function (r, i) {
+    var nm = String(r.name == null ? '' : r.name).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+    return '<div class="lb-row"><span class="lb-rank">' + (i + 1) + '.</span>' +
+           '<span class="lb-name">' + nm + '</span>' +
+           '<span class="lb-score">' + (Number(r.score) || 0) + '</span></div>';
+  }).join('');
+}
+
+JARVIS.postScore = function (game, score) {
+  fetch('/api/scores', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ game: game, score: score, name: playerName() })
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (d) { if (d.top && game === 'runner') renderLb(d.top); })
+    .catch(function () {});
+};
+
+(function () {
+  fetch('/api/scores?game=runner')
+    .then(function (r) { return r.json(); })
+    .then(function (d) { renderLb(d.top); })
+    .catch(function () {
+      var box = document.getElementById('lbList');
+      if (box) box.innerHTML = '<div class="lb-empty">сервер недоступен</div>';
+    });
+})();
+
+// --- переключатель игр ---
+(function () {
+  var btns = document.querySelectorAll('.gsw');
+  var views = { runner: 'gv-runner', memory: 'gv-memory', snake: 'gv-snake' };
+  btns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      var g = b.getAttribute('data-game');
+      JARVIS.gameView = g;
+      btns.forEach(function (x) { x.classList.toggle('active', x === b); });
+      Object.keys(views).forEach(function (k) {
+        var v = document.getElementById(views[k]);
+        if (v) v.hidden = (k !== g);
+      });
+      termLog('Игра: ' + b.textContent, 'sys');
     });
   });
 })();
 
+// --- MEMORY: найди все пары ---
+(function () {
+  var board = document.getElementById('memBoard');
+  if (!board) return;
+  var EMOJI = ['🚀', '🔋', '🤖', '👾', '🛸', '⚡', '🛡️', '🧠'];
+  var cards = [], moves = 0, pairs = 0, lock = false, sec = 0, started = false, timer = null, done = false;
+
+  function esc_(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); } // not used for emoji
+
+  function shuffle(a) {
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function hud() {
+    var m = document.getElementById('mMoves'); if (m) m.textContent = moves;
+    var t = document.getElementById('mTime'); if (t) t.textContent = sec;
+    var p = document.getElementById('mPairs'); if (p) p.textContent = pairs + '/8';
+  }
+
+  function stopTimer() { if (timer) { clearInterval(timer); timer = null; } }
+
+  function newGame() {
+    stopTimer();
+    cards = shuffle(EMOJI.concat(EMOJI)).map(function (e) { return { e: e, up: false, matched: false }; });
+    moves = 0; pairs = 0; sec = 0; lock = false; started = false; done = false;
+    var note = document.getElementById('memNote');
+    if (note) note.textContent = 'игра на внимание · очки = 5000 − время×10 − ходы×20 · счёт уходит в таблицу рекордов';
+    render(); hud();
+  }
+
+  function render() {
+    board.innerHTML = cards.map(function (c, i) {
+      var cls = 'mcard' + (c.up ? ' up' : '') + (c.matched ? ' matched' : '');
+      return '<div class="' + cls + '" data-i="' + i + '"><span class="me">' + c.e + '</span></div>';
+    }).join('');
+  }
+
+  function flip(i) {
+    var c = cards[i];
+    if (lock || done || c.up || c.matched) return;
+    c.up = true;
+    if (!started) {
+      started = true;
+      timer = setInterval(function () { sec++; hud(); }, 1000);
+    }
+    var open = [];
+    cards.forEach(function (x, j) { if (x.up && !x.matched) open.push(j); });
+    if (open.length === 2) {
+      moves++;
+      var a = cards[open[0]], b = cards[open[1]];
+      if (a.e === b.e) {
+        a.matched = b.matched = true; a.up = b.up = false;
+        pairs++;
+        if (pairs === 8) win();
+      } else {
+        lock = true;
+        setTimeout(function () { a.up = b.up = false; lock = false; render(); }, 650);
+      }
+    }
+    render(); hud();
+  }
+
+  function win() {
+    done = true;
+    stopTimer();
+    var score = Math.max(0, 5000 - sec * 10 - moves * 20);
+    var note = document.getElementById('memNote');
+    if (note) note.textContent = 'ПОБЕДА! ' + moves + ' ходов, ' + sec + ' сек → очков: ' + score + ' (записано в таблицу)';
+    if (termLog) termLog('Memory: победа! ' + moves + ' ходов, ' + sec + ' с, очков ' + score, 'ok');
+    if (JARVIS.postScore) JARVIS.postScore('memory', score);
+    if (JARVIS.botSay) JARVIS.botSay('Победа в Memory: ' + score + ' очков, сэр!');
+  }
+
+  board.addEventListener('click', function (e) {
+    var el = e.target.closest ? e.target.closest('.mcard') : null;
+    if (el) flip(Number(el.getAttribute('data-i')));
+  });
+  var rst = document.getElementById('memRestart');
+  if (rst) rst.addEventListener('click', newGame);
+
+  newGame();
+})();
+
+// --- SNAKE ---
+(function () {
+  var cv = document.getElementById('snakeCanvas');
+  if (!cv) return;
+  var ctx = cv.getContext('2d');
+  var N = 18, CELL = cv.width / N;
+  var snake, dir, nextDir, food, score = 0, best = 0, dead = false, paused = false;
+  var acc = 0, last = 0, pulse = 0, overAt = 0;
+  try { best = parseInt(localStorage.getItem('jarvis-snake-best'), 10) || 0; } catch (e) {}
+
+  function isActive() {
+    var b = document.querySelector('.tab-btn.active');
+    if (!b || b.getAttribute('data-tab') !== 'game') return false;
+    return JARVIS.gameView === 'snake';
+  }
+  function inInput() {
+    var el = document.activeElement;
+    return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
+  }
+  function tone(freq, dur) {
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      if (!beep.ctx) beep.ctx = new Ctx();
+      var ac = beep.ctx;
+      if (ac.state === 'suspended') ac.resume();
+      var o = ac.createOscillator(), g = ac.createGain();
+      o.type = 'square'; o.frequency.value = freq;
+      o.connect(g); g.connect(ac.destination);
+      var t0 = ac.currentTime;
+      g.gain.setValueAtTime(0.00001, t0);
+      g.gain.exponentialRampToValueAtTime(0.1, t0 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.00001, t0 + dur);
+      o.start(t0); o.stop(t0 + dur + 0.02);
+    } catch (e) {}
+  }
+  function onSnake(p) {
+    return snake.some(function (s) { return s.x === p.x && s.y === p.y; });
+  }
+  function placeFood() {
+    var p;
+    do { p = { x: Math.floor(Math.random() * N), y: Math.floor(Math.random() * N) }; }
+    while (onSnake(p));
+    food = p;
+  }
+  function reset() {
+    snake = [{ x: 8, y: 9 }, { x: 7, y: 9 }, { x: 6, y: 9 }];
+    dir = { x: 1, y: 0 }; nextDir = dir;
+    score = 0; dead = false; paused = false; acc = 0; overAt = 0;
+    placeFood(); hud();
+  }
+  function hud() {
+    var s = document.getElementById('snakeScore'); if (s) s.textContent = score;
+    var b = document.getElementById('snakeBest'); if (b) b.textContent = best;
+  }
+  function gameOver() {
+    dead = true; overAt = Date.now();
+    tone(200, 0.2); setTimeout(function () { tone(130, 0.3); }, 160);
+    if (score > best) {
+      best = score;
+      try { localStorage.setItem('jarvis-snake-best', String(best)); } catch (e) {}
+      if (JARVIS.botSay) JARVIS.botSay('Новый рекорд в Snake: ' + best + ' очков, сэр!');
+    }
+    hud();
+    if (score > 0 && JARVIS.postScore) JARVIS.postScore('snake', score);
+    if (termLog) termLog('Snake: счёт ' + score + (score >= best && score > 0 ? ' — рекорд!' : ''), 'sys');
+  }
+  function step() {
+    dir = nextDir;
+    var head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+    if (head.x < 0 || head.y < 0 || head.x >= N || head.y >= N || onSnake(head)) { gameOver(); return; }
+    snake.unshift(head);
+    if (head.x === food.x && head.y === food.y) {
+      score += 10;
+      tone(880, 0.06);
+      placeFood(); hud();
+    } else {
+      snake.pop();
+    }
+  }
+  function interval() { return Math.max(70, 150 - Math.floor(score / 10) * 5); } // ускорение
+
+  function draw() {
+    var rgb = getComputedStyle(document.body).getPropertyValue('--accent-rgb').trim() || '0,229,255';
+    ctx.clearRect(0, 0, cv.width, cv.height);
+
+    // сетка
+    ctx.strokeStyle = 'rgba(' + rgb + ',0.07)';
+    ctx.lineWidth = 1;
+    for (var i = 1; i < N; i++) {
+      ctx.beginPath(); ctx.moveTo(i * CELL, 0); ctx.lineTo(i * CELL, cv.height); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, i * CELL); ctx.lineTo(cv.width, i * CELL); ctx.stroke();
+    }
+
+    // еда — пульсирующая точка
+    pulse += 0.08;
+    var fr = CELL * (0.28 + 0.07 * Math.sin(pulse));
+    ctx.save();
+    ctx.shadowColor = 'rgba(255,85,119,0.9)'; ctx.shadowBlur = 10;
+    ctx.fillStyle = 'rgba(255,85,119,1)';
+    ctx.beginPath();
+    ctx.arc(food.x * CELL + CELL / 2, food.y * CELL + CELL / 2, fr, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // змея
+    snake.forEach(function (s, idx) {
+      var a = idx === 0 ? 1 : Math.max(0.35, 1 - idx * 0.04);
+      ctx.save();
+      ctx.shadowColor = 'rgba(' + rgb + ',0.8)'; ctx.shadowBlur = idx === 0 ? 12 : 5;
+      ctx.fillStyle = 'rgba(' + rgb + ',' + a + ')';
+      ctx.fillRect(s.x * CELL + 1.5, s.y * CELL + 1.5, CELL - 3, CELL - 3);
+      ctx.restore();
+    });
+    // глаза у головы
+    ctx.fillStyle = 'rgba(0,0,0,0.85)';
+    var h = snake[0];
+    ctx.fillRect(h.x * CELL + CELL * (dir.y !== 0 ? 0.25 : (dir.x > 0 ? 0.55 : 0.2)), h.y * CELL + CELL * 0.3, 3, 3);
+    ctx.fillRect(h.x * CELL + CELL * (dir.y !== 0 ? 0.55 : (dir.x > 0 ? 0.55 : 0.2)), h.y * CELL + CELL * 0.6, 3, 3);
+
+    // оверлей
+    ctx.save();
+    ctx.textAlign = 'center';
+    if (paused && !dead) {
+      ctx.fillStyle = 'rgba(' + rgb + ',0.95)';
+      ctx.font = '700 22px Consolas, monospace';
+      ctx.fillText('ПАУЗА — SPACE', cv.width / 2, cv.height / 2);
+    } else if (dead) {
+      ctx.fillStyle = 'rgba(255,85,119,1)';
+      ctx.shadowColor = 'rgba(255,85,119,0.9)'; ctx.shadowBlur = 14;
+      ctx.font = '700 26px Consolas, monospace';
+      ctx.fillText('GAME OVER', cv.width / 2, cv.height / 2 - 14);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(' + rgb + ',0.9)';
+      ctx.font = '14px Consolas, monospace';
+      ctx.fillText('счёт ' + score + ' · клик / SPACE — заново', cv.width / 2, cv.height / 2 + 16);
+    }
+    ctx.restore();
+  }
+
+  function frame(now) {
+    requestAnimationFrame(frame);
+    if (!isActive()) { last = now; return; }
+    var dt = now - (last || now);
+    last = now;
+    if (dead || paused) { draw(); return; }
+    acc += dt;
+    var iv = interval();
+    while (acc >= iv) { acc -= iv; step(); if (dead) break; }
+    draw();
+  }
+  requestAnimationFrame(frame);
+
+  function restart() {
+    if (dead && Date.now() - overAt < 300) return;
+    reset(); tone(700, 0.06);
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (!isActive() || inInput()) return;
+    var k = e.key.toLowerCase();
+    var map = {
+      arrowup: { x: 0, y: -1 }, w: { x: 0, y: -1 },
+      arrowdown: { x: 0, y: 1 }, s: { x: 0, y: 1 },
+      arrowleft: { x: -1, y: 0 }, a: { x: -1, y: 0 },
+      arrowright: { x: 1, y: 0 }, d: { x: 1, y: 0 }
+    };
+    if (map[k]) {
+      e.preventDefault();
+      var d = map[k];
+      if (d.x === -dir.x && d.y === -dir.y) return; // разворот запрещён
+      nextDir = d;
+      if (dead) restart();
+    } else if (e.code === 'Space') {
+      e.preventDefault();
+      if (dead) restart();
+      else paused = !paused;
+    } else if (e.key === 'Escape') {
+      paused = true;
+    }
+  });
+
+  cv.addEventListener('pointerdown', function (e) { e.preventDefault(); if (dead) restart(); else paused = !paused; });
+  var rb = document.getElementById('snakeRestart');
+  if (rb) rb.addEventListener('click', function () { reset(); });
+
+  reset();
+})();
+
 /* ================================================================
-   8. ИНИЦИАЛИЗАЦИЯ
+   12.1. BOOT-ЭКРАН (типовой прогон строк при загрузке)
+================================================================ */
+(function () {
+  var el = document.getElementById('bootScreen');
+  if (!el) return;
+  var log = document.getElementById('bootLog');
+  var lines = [
+    '<span class="b-head">J.A.R.V.I.S. OS — инициализация...</span>',
+    '<span class="b-ok">[ OK ]</span> core reactor online',
+    '<span class="b-ok">[ OK ]</span> кибер-рендер дождя (canvas)',
+    '<span class="b-ok">[ OK ]</span> speech synthesis + recognition',
+    '<span class="b-ok">[ OK ]</span> daemon таймеров и напоминаний',
+    '<span class="b-ok">[ OK ]</span> uplink Open-Meteo (Астана)',
+    '<span class="b-ok">[ OK ]</span> новостной конвейер: HN · dev.to · X',
+    '<span class="b-ok">[ OK ]</span> Neon Runner engine',
+    '<span class="b-ok">[ OK ]</span> express API :3000',
+    '<span class="b-final">SYSTEM READY — слушаю вас, сэр.</span>'
+  ];
+  var i = 0, done = false;
+
+  function finish() {
+    if (done) return;
+    done = true;
+    el.classList.add('boot-hide');
+    setTimeout(function () { el.style.display = 'none'; }, 700);
+  }
+
+  function next() {
+    if (done) return;
+    if (i >= lines.length) { setTimeout(finish, 550); return; }
+    var d = document.createElement('div');
+    d.className = 'b-line';
+    d.innerHTML = lines[i];
+    log.appendChild(d);
+    i++;
+    setTimeout(next, i <= 2 ? 300 : 150 + Math.random() * 160);
+  }
+
+  next();
+  el.addEventListener('click', finish);
+  document.addEventListener('keydown', function bootKey() {
+    finish();
+    document.removeEventListener('keydown', bootKey);
+  });
+})();
+
+/* ================================================================
+   13. ИНИЦИАЛИЗАЦИЯ
 ================================================================ */
 (function init() {
   var savedTheme = null, savedRain = null;
@@ -1053,7 +4784,89 @@ termInput.addEventListener('keydown', function (e) {
 
   termLog('J.A.R.V.I.S. Terminal v2.6 — инициализация завершена.', 'ok');
   termLog('Введи help, чтобы увидеть список команд.', 'sys');
-  termLog('');
+
+  // === PIN-доступ (п.16 плана): оверлей-заглушка ===
+  (function () {
+    var ov = document.getElementById('pinOverlay');
+    if (!ov) return;
+    var input = document.getElementById('pinInput');
+    var err = document.getElementById('pinErr');
+    var go = document.getElementById('pinGo');
+    var busy = false;
+
+    JARVIS.showPin = function (msg) {
+      ov.classList.remove('pin-hide');
+      if (msg) err.textContent = msg;
+      try { input.focus(); } catch (e) {}
+    };
+
+    function hide() {
+      ov.classList.add('pin-hide');
+      if (input) input.value = '';
+      if (err) err.textContent = '';
+    }
+
+    function submit() {
+      if (busy) return;
+      var v = (input.value || '').trim();
+      if (!v) { err.textContent = 'Введите PIN-код'; return; }
+      busy = true;
+      err.textContent = '';
+      fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: v })
+      })
+        .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+        .then(function () {
+          try { sessionStorage.setItem('jarvis-pin', v); } catch (e) {}
+          busy = false;
+          hide();
+          termLog('PIN принят — система разблокирована, сэр.', 'ok');
+          fetch('/api/state').catch(function () {}); // прогрев состояния
+        })
+        .catch(function () {
+          busy = false;
+          err.textContent = 'Неверный PIN-код';
+          try { input.select(); } catch (e) {}
+        });
+    }
+
+    if (go) go.addEventListener('click', submit);
+    if (input) input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') submit();
+    });
+
+    // первый показ: если PIN уже в sessionStorage — прячем сразу
+    var hasPin = null;
+    try { hasPin = sessionStorage.getItem('jarvis-pin'); } catch (e) {}
+    if (hasPin) hide();
+    else JARVIS.showPin();
+  })();
+
+  // PWA: service worker для офлайн-режима (п.15 плана)
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').then(function () {
+      termLog('PWA: service worker подключён — приложение ставится на рабочий стол.', 'ok');
+    }).catch(function () {
+      /* не-secure контекст или старый браузер — просто молчим */
+    });
+  }
+
+  // Синхронизация состояния с сервером (/api/state)
+  fetch('/api/state')
+    .then(function (r) { return r.json(); })
+    .then(function (s) {
+      if (s.theme) JARVIS.setTheme(s.theme, true);
+      if (typeof s.rain === 'boolean' && s.rain !== JARVIS.rainIsOn()) JARVIS.toggleRain();
+      updateRainBtn();
+      termLog('Сервер подключён. Аптайм: ' + s.uptime + '.', 'ok');
+      termLog('');
+    })
+    .catch(function () {
+      termLog('Сервер недоступен — автономный режим.', 'err');
+      termLog('');
+    });
 })();
 </script>
 </body>
