@@ -58,7 +58,9 @@ function buildMessages(message, history, memory) {
 }
 
 // один запрос → {ok:текст} | {empty:true} | {err:...}
-async function attempt(modelName, msgs) {
+// tmo: свой таймаут — основная модель уходит в 504 очереди, когда занята;
+// 15с хватает на ответ и не съедает дедлайн (32с), чтобы успела запасная
+async function attempt(modelName, msgs, tmo) {
   try {
     const data = await postJson(
       AI_URL,
@@ -68,7 +70,8 @@ async function attempt(modelName, msgs) {
         temperature: 0.85,
         max_tokens: 2000 // reasoning-модели жрут бюджет на «размышления» — 400 не хватало
       },
-      AI_KEY ? { Authorization: 'Bearer ' + AI_KEY } : undefined
+      AI_KEY ? { Authorization: 'Bearer ' + AI_KEY } : undefined,
+      tmo
     );
     const content =
       data &&
@@ -102,27 +105,27 @@ function cooldownWait(err) {
 async function core(message, history, memory) {
   const msgs = buildMessages(message, history, memory);
 
-  let res = await attempt(MODEL, msgs);
+  let res = await attempt(MODEL, msgs, 15000);
   if (res.ok) return res.ok;
 
   if (res.err && /429|cooldown/.test(res.err)) {
     const wait = cooldownWait(res.err);
     console.log(`ИИ: cooldown (${MODEL}) — пауза ${Math.round(wait / 1000)}с, повторяю`);
     await sleep(wait);
-    res = await attempt(MODEL, msgs);
+    res = await attempt(MODEL, msgs, 15000);
     if (res.ok) return res.ok;
   } else if (res.err && /429/.test(res.err)) {
     await sleep(RATE_WAIT);
-    res = await attempt(MODEL, msgs);
+    res = await attempt(MODEL, msgs, 15000);
     if (res.ok) return res.ok;
   } else if (res.empty) {
     console.log(`ИИ (${MODEL}) вернул пустой ответ — повторяю`);
-    res = await attempt(MODEL, msgs);
+    res = await attempt(MODEL, msgs, 15000);
     if (res.ok) return res.ok;
   }
 
   if (BACKUP_MODEL && BACKUP_MODEL !== MODEL) {
-    const b = await attempt(BACKUP_MODEL, msgs);
+    const b = await attempt(BACKUP_MODEL, msgs, 14000);
     if (b.ok) return b.ok;
     console.log(`ИИ: запасная ${BACKUP_MODEL} тоже молчит (${b.err || 'пусто'})`);
   }

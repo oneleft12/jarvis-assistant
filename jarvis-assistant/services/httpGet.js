@@ -28,8 +28,9 @@ async function getJson(url) {
   return JSON.parse(txt);
 }
 
-// JSON-POST (для ИИ и API); headers — доп. заголовки (например Authorization)
-function postJson(url, obj, headers) {
+// JSON-POST (для ИИ и API); headers — доп. заголовки (например Authorization),
+// timeout — свой таймаут запроса (мс), по умолчанию 30с
+function postJson(url, obj, headers, timeout) {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify(obj);
     const lib = url.startsWith('http:') ? http : https;
@@ -41,7 +42,7 @@ function postJson(url, obj, headers) {
           { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
           headers || {}
         ),
-        timeout: 30000 // reasoning-модели на холодном стартe живут до ~25с
+        timeout: timeout || 30000 // reasoning-модели на холодном стартe живут до ~25с
       },
       (res) => {
         let data = '';
