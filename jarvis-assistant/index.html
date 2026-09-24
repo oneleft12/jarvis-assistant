@@ -1558,6 +1558,8 @@
           <input id="admBcast" maxlength="120" placeholder="Сообщение всем клиентам">
           <button class="ctl-btn sm" id="admBcastBtn">ОТПРАВИТЬ</button>
         </div>
+        <div id="admBcasts" class="vis-list" style="margin-top:6px"><div class="vis-empty">загрузка…</div></div>
+        <button class="ctl-btn sm danger" id="admBcastClear" style="margin-top:6px">🧹 ОЧИСТИТЬ ВСЕ РАССЫЛКИ У КЛИЕНТОВ</button>
         <div class="adm-btns">
           <button class="ctl-btn sm" id="admClearLogs">Очистить журнал</button>
           <button class="ctl-btn sm" id="admClearMem">Память</button>
@@ -1772,7 +1774,7 @@
           <div class="api-item"><span class="api-method">POST</span><span class="api-path">/api/terminal</span><span class="api-desc">тело { command } → { output, clear } — help, ping, theme, rain, status, clear</span></div>
           <div class="api-item"><span class="api-method get">GET</span><span class="api-path">/api/state</span><span class="api-desc">→ { theme, rain, online, uptime, logs } — состояние и журнал (50 записей)</span></div>
           <div class="api-item"><span class="api-method post">POST</span><span class="api-path">/api/auth</span><span class="api-desc">тело { pin } → { ok: true } | 401 — остальной /api/* требует заголовок x-jarvis-pin</span></div>
-          <div class="api-item"><span class="api-method post">POST</span><span class="api-path">/api/admin/*</span><span class="api-desc">login → токен x-jarvis-admin · status | site | pins | guests | ai | clear | broadcast | restart | visitors | kick | ban | unban — с токеном, работает даже при выключенном сайте (rate-limit 5/мин на IP)</span></div>
+          <div class="api-item"><span class="api-method post">POST</span><span class="api-path">/api/admin/*</span><span class="api-desc">login → токен x-jarvis-admin · status | site | pins | guests | ai | clear | broadcast (+ GET broadcasts, broadcast/delete, broadcast/clear — журнал рассылок и удаление у всех клиентов) | restart | visitors | kick | ban | unban — с токеном, работает даже при выключенном сайте (rate-limit 5/мин на IP)</span></div>
           <div class="api-item"><span class="api-method get">GET</span><span class="api-path">/api/plugins</span><span class="api-desc">→ { commands: [{ cmd, desc, plugin }] } — реестр плагинов</span></div>
           <div class="api-item"><span class="api-method">POST</span><span class="api-path">/api/scores</span><span class="api-desc">тело { game, score, name } → таблица рекордов (runner|memory|snake), GET ?game= — топ-10</span></div>
         </div>
@@ -1882,6 +1884,7 @@
           <div class="road-item"><span>Админ-панель: PIN-вход, отключение сайта для посетителей, смена PIN-кодов</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>Админ-инструменты: режимы гостей/ИИ, рассылка, очистка данных, перезапуск</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>Посетители: IP-адреса и действия в реальном времени, кнопки КИК и БАН</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>Журнал рассылок: история отправленных сообщений, удаление у всех клиентов</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>PWA: manifest, service worker, офлайн-режим</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>PIN-доступ к API</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>ИИ-чат: личность Джарвиса на локальной LLM (9router, mimo-v2.6 + запасная muse)</span><span class="badge ai">ИИ</span><span class="badge done">Готово</span></div>
@@ -2516,16 +2519,11 @@ if (!SRClass) {
         stats.diskTotalGb = d.diskTotalGb;
         stats.top = d.top || [];
         stats.cpuHistory = d.cpuHistory || [];
-        // системная рассылка из админ-панели (приходит вместе с метриками)
-        if (d.broadcast && d.broadcast.id) {
-          var seen = null;
-          try { seen = Number(sessionStorage.getItem('jarvis-bcast')); } catch (e) {}
-          if (d.broadcast.id !== seen) {
-            try { sessionStorage.setItem('jarvis-bcast', String(d.broadcast.id)); } catch (e) {}
-            if (JARVIS.botSay) JARVIS.botSay('📣 ' + d.broadcast.text);
-            termLog('Рассылка администратора: ' + d.broadcast.text, 'ok');
-          }
-        }
+        // системные рассылки из админ-панели (приходят вместе с метриками):
+        // объявление новых + вычистка удалённых админом (см. syncBroadcasts)
+        var bList = d.broadcasts;
+        if (!Array.isArray(bList) && d.broadcast && d.broadcast.id) bList = [d.broadcast];
+        if (Array.isArray(bList) && JARVIS.syncBroadcasts) JARVIS.syncBroadcasts(bList);
         render();
       })
       .catch(function () {
@@ -2558,9 +2556,10 @@ if (!SRClass) {
     try { localStorage.setItem('jarvis-chat-hist', JSON.stringify(chatHist.slice(-50))); } catch (e) {}
   }
 
-  function addMsg(text, who, silent) {
+  function addMsg(text, who, silent, bid) {
     var el = document.createElement('div');
     el.className = 'msg ' + (who === 'user' ? 'user' : 'bot');
+    if (bid) el.setAttribute('data-b', String(bid)); // id рассылки — чтобы удалить её у всех
     var label = document.createElement('span');
     label.className = 'who';
     label.textContent = who === 'user' ? 'Вы' : 'J.A.R.V.I.S.';
@@ -2571,7 +2570,9 @@ if (!SRClass) {
 
     // запись в историю (кроме восстановления после загрузки)
     if (!silent) {
-      chatHist.push({ w: who === 'user' ? 'u' : 'b', t: String(text).slice(0, 500) });
+      var rec = { w: who === 'user' ? 'u' : 'b', t: String(text).slice(0, 500) };
+      if (bid) rec.b = String(bid); // id рассылки — история общая для всех вкладок
+      chatHist.push(rec);
       if (chatHist.length > 50) chatHist = chatHist.slice(-50);
       saveHist();
       // озвучка ответов Джарвиса (если голос включён)
@@ -2582,7 +2583,7 @@ if (!SRClass) {
   // восстановление истории при загрузке
   if (chatHist.length) {
     messages.innerHTML = '';
-    chatHist.forEach(function (m) { addMsg(m.t, m.w === 'u' ? 'user' : 'bot', true); });
+    chatHist.forEach(function (m) { addMsg(m.t, m.w === 'u' ? 'user' : 'bot', true, m.b); });
   }
 
   // очистка истории
@@ -2654,8 +2655,69 @@ if (!SRClass) {
     if (e.key === 'Enter') JARVIS.chatSend(input.value);
   });
 
-  // Сообщение бота без запроса на сервер (для кнопок/ядра)
-  JARVIS.botSay = function (text) { addMsg(text, 'bot'); };
+  // Сообщение бота без запроса на сервер (для кнопок/ядра).
+  // bid — id рассылки: сообщение помечается и удаляется у всех клиентов,
+  // когда админ удаляет его из журнала
+  JARVIS.botSay = function (text, bid) { addMsg(text, 'bot', false, bid); };
+
+  /* --- Журнал рассылок: объявление новых и удаление у всех клиентов ---
+     Сервер каждый опрос /api/system отдаёт активные рассылки (broadcasts).
+     - новую (id не известен этой вкладке) — объявляем в чате и терминале;
+     - id, которого больше нет в списке (админ удалил) — вычищаем из чата
+       и из общей истории localStorage: так сообщение исчезает у ВСЕХ. */
+  var bSeen = null; // null → первая синхронизация в этой вкладке
+  try { bSeen = JSON.parse(sessionStorage.getItem('jarvis-bcast-ids')); } catch (e) {}
+  function saveBSeen() {
+    try { sessionStorage.setItem('jarvis-bcast-ids', JSON.stringify(bSeen.slice(-60))); } catch (e) {}
+  }
+  function hasBcast(id) {
+    for (var i = 0; i < chatHist.length; i++) if (String(chatHist[i].b) === String(id)) return true;
+    return false;
+  }
+
+  JARVIS.syncBroadcasts = function (list) {
+    if (!Array.isArray(list)) return;
+    var activeIds = list.map(function (b) { return String(b.id); });
+
+    // первая синхронизация: помечаем известными всё кроме самой свежей —
+    // старые рассылки недели не должны всплывать в каждом новом окне
+    if (!Array.isArray(bSeen)) bSeen = activeIds.slice(1);
+
+    // объявить новые (старые сверху — по времени отправки)
+    list.slice().sort(function (a, b) { return (a.ts || 0) - (b.ts || 0); })
+      .forEach(function (b) {
+        var id = String(b.id);
+        if (bSeen.indexOf(id) !== -1) return;
+        bSeen.push(id);
+        if (hasBcast(id)) return; // уже есть в общей истории — не дублируем
+        JARVIS.botSay('📣 ' + b.text, id);
+        termLog('Рассылка администратора: ' + b.text, 'ok');
+      });
+
+    // удалённые сервером — убрать из истории и из DOM
+    var removed = [];
+    var kept = [];
+    chatHist.forEach(function (m) {
+      if (m.b && activeIds.indexOf(String(m.b)) === -1) removed.push(m.t);
+      else kept.push(m);
+    });
+    if (removed.length) {
+      chatHist = kept;
+      saveHist();
+      var els = messages.querySelectorAll('[data-b]');
+      for (var i = 0; i < els.length; i++) {
+        if (activeIds.indexOf(els[i].getAttribute('data-b')) === -1 && els[i].parentNode) {
+          els[i].parentNode.removeChild(els[i]);
+        }
+      }
+      removed.forEach(function (t) {
+        termLog('Рассылка удалена администратором: ' + String(t).replace(/^📣\s*/, ''), 'sys');
+      });
+    }
+
+    bSeen = bSeen.filter(function (id) { return activeIds.indexOf(id) !== -1; });
+    saveBSeen();
+  };
 })();
 
 /* ================================================================
@@ -5304,6 +5366,7 @@ JARVIS.postScore = function (game, score) {
           document.getElementById('admGuests').checked = !!s.guestsAllowed;
           document.getElementById('admAI').checked = !!s.aiEnabled;
           loadVisitors();
+          loadBcasts();
         })
         .catch(function (e) { if (e.status === 403) JARVIS.adminRelogin(); else say(failText(e), true); });
     }
@@ -5375,7 +5438,56 @@ JARVIS.postScore = function (game, score) {
       var t = (document.getElementById('admBcast').value || '').trim();
       if (!t) { say('Введите текст рассылки', true); return; }
       api('/api/admin/broadcast', { text: t })
-        .then(function () { document.getElementById('admBcast').value = ''; say('Рассылка отправлена всем клиентам.'); })
+        .then(function () {
+          document.getElementById('admBcast').value = '';
+          say('Рассылка отправлена всем клиентам.');
+          loadBcasts();
+        })
+        .catch(function (e) { say(failText(e), true); });
+    });
+
+    // --- журнал рассылок: список, удаление у всех, очистка ---
+    var bcastBox = document.getElementById('admBcasts');
+    function loadBcasts() {
+      api('/api/admin/broadcasts')
+        .then(function (d) {
+          var list = d.list || [];
+          if (!list.length) {
+            bcastBox.innerHTML = '<div class="vis-empty">рассылок ещё нет</div>';
+            return;
+          }
+          bcastBox.innerHTML = list.map(function (b) {
+            return (
+              '<div class="vis-row">' +
+                '<div class="vis-head">' +
+                  '<span class="vis-ip">📣</span>' +
+                  '<span class="vis-meta">' + esc(b.time || '') + '</span>' +
+                '</div>' +
+                '<div class="vis-last">' + esc(b.text) + '</div>' +
+                '<div class="vis-btns">' +
+                  '<button class="ctl-btn sm danger" data-bdel="' + esc(b.id) + '">✕ УДАЛИТЬ У ВСЕХ</button>' +
+                '</div>' +
+              '</div>'
+            );
+          }).join('');
+          bcastBox.querySelectorAll('button[data-bdel]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              if (!confirm('Удалить эту рассылку у всех клиентов?')) return;
+              api('/api/admin/broadcast/delete', { id: btn.getAttribute('data-bdel') })
+                .then(function () {
+                  say('Рассылка удалена — у клиентов исчезнет в течение ~2 секунд.');
+                  loadBcasts();
+                })
+                .catch(function (e) { say(failText(e), true); });
+            });
+          });
+        })
+        .catch(function (e) { if (e.status === 403) JARVIS.adminRelogin(); else say(failText(e), true); });
+    }
+    document.getElementById('admBcastClear').addEventListener('click', function () {
+      if (!confirm('Очистить все рассылки? Они исчезнут из чата у всех клиентов.')) return;
+      api('/api/admin/broadcast/clear', {})
+        .then(function (d) { say('Журнал рассылок очищен (' + (d.cleared || 0) + ').'); loadBcasts(); })
         .catch(function (e) { say(failText(e), true); });
     });
 

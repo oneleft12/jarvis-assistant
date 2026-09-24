@@ -14,6 +14,7 @@ const memoryStore = require('../services/memoryStore');
 const scoreStore = require('../services/scoreStore');
 const { clientKey } = require('../services/scope');
 const visitorsStore = require('../services/visitorsStore');
+const broadcastStore = require('../services/broadcastStore');
 
 // Rate-limit входа: 5 неудач подряд С ОДНОГО IP → блок этого IP на 60 секунд
 // (общий счётчик задевал бы всех: чужой спам не должен блокировать владельца)
@@ -171,13 +172,39 @@ router.post('/clear', (req, res) => {
 });
 
 // Рассылка всем клиентам: POST /api/admin/broadcast { text }
-// клиент подхватывает её вместе с /api/system (опрос каждые 2 сек)
+// клиент подхватывает её вместе с /api/system (опрос каждые 2 сек);
+// запись попадает в журнал рассылок (broadcastStore) — её можно удалить
 router.post('/broadcast', (req, res) => {
   const text = String((req.body && req.body.text) || '').slice(0, 200);
   if (!text.trim()) return res.status(400).json({ error: 'Пустое сообщение' });
-  state.broadcast = { id: Date.now(), text };
+  const item = broadcastStore.add(text);
   addLog('Админ-рассылка: ' + text);
+  res.json({ ok: true, id: item.id });
+});
+
+// Журнал рассылок: GET /api/admin/broadcasts → { list: [...] }
+router.get('/broadcasts', (req, res) => {
+  res.json({ list: broadcastStore.list() });
+});
+
+// Удалить рассылку у ВСЕХ клиентов: POST /api/admin/broadcast/delete { id }
+// запись уходит из журнала; клиенты при следующем опросе /api/system
+// вычищают её из чата и истории
+router.post('/broadcast/delete', (req, res) => {
+  const id = (req.body && req.body.id) != null ? req.body.id : '';
+  if (id === '' || id == null) return res.status(400).json({ error: 'Укажите id' });
+  const found = broadcastStore.remove(id);
+  if (!found) return res.status(404).json({ error: 'Рассылка не найдена' });
+  addLog(`Админ: рассылка ${id} удалена у всех клиентов`);
   res.json({ ok: true });
+});
+
+// Очистить весь журнал рассылок: POST /api/admin/broadcast/clear
+// все ранее отправленные рассылки вычищаются у клиентов
+router.post('/broadcast/clear', (req, res) => {
+  const n = broadcastStore.clear();
+  addLog(`Админ: журнал рассылок очищен (${n})`);
+  res.json({ ok: true, cleared: n });
 });
 
 // Перезапуск сервера: поднимаем новый процесс и уходим сами

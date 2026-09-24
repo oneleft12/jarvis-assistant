@@ -38,6 +38,7 @@
 | 10 | Перезапуск сервера из панели | Готово |
 | 11 | Посетители: IP-адреса и их действия на сайте | Готово |
 | 12 | Кнопки КИК (выкинуть на 60 с) и БАН (блок IP до разблока) | Готово |
+| 13 | Журнал рассылок: история отправленных сообщений + удаление у всех клиентов | Готово |
 
 ## 3. Архитектура и модель доступа
 
@@ -84,6 +85,9 @@
 | **ИИ-чат** | Флажок → `POST /api/admin/ai` | `JARVIS_AI=off/on` читается живьём: без ИИ чат переходит на заготовленные фразы |
 | **Очистка** | Кнопки Журнал/Память/Рекорды → `POST /api/admin/clear` | `data/memory.json`, `data/scores.json`, журнал в памяти |
 | **Рассылка** | Текст → `POST /api/admin/broadcast` | Клиенты подхватывают её вместе с метриками `/api/system` (уже опрашиваются каждые 2 с) и показывают в чате (`📣`) и терминале |
+| **Журнал рассылок** | `GET /api/admin/broadcasts` | История отправленных рассылок в панели: время, текст; хранится в `data/broadcasts.json` — переживает перезапуск (последние 50) |
+| **Удаление рассылки у всех** | Кнопка ✕ УДАЛИТЬ У ВСЕХ → `POST /api/admin/broadcast/delete {id}` | Запись уходит из журнала; клиенты при следующем опросе (≤2 с) сверяют активный список со своей историей и вычищают сообщение из чата и `localStorage` — исчезает у всех вкладок и устройств |
+| **Очистка всех рассылок** | Кнопка 🧹 ОЧИСТИТЬ ВСЕ → `POST /api/admin/broadcast/clear` | То же, но для всего журнала разом |
 | **Перезапуск** | Кнопка → `POST /api/admin/restart` | Поднимает новый `node server.js` (detached) и завершает старый; панель сама ловит сервер и просит войти заново |
 | **Посетители** | `GET /api/admin/visitors` (обновление каждые 5 с, пока панель открыта) | Список IP: гость/локал, число запросов, последнее действие, история последних 25 действий по клику |
 | **КИК** | `POST /api/admin/kick {ip}` | 403 `ip_kicked` на 60 секунд: клиенту показывается «Администратор вас отключил», PIN сбрасывается; после — может войти заново |
@@ -100,10 +104,11 @@
 | Файл | Роль |
 |------|------|
 | `services/adminStore.js` | Настройки в `data/admin.json` (gitignore), набор живых токенов, список заблокированных IP |
+| `services/broadcastStore.js` | Журнал рассылок в `data/broadcasts.json` (gitignore): add/list/remove/clear |
 | `services/visitorsStore.js` | Журнал посетителей: IP, действия, кики — только в памяти, на диск не пишется |
 | `routes/admin.js` | 10 эндпоинтов панели + rate-limit входа + перезапуск |
 | `server.js` | Гейт: токен → login-exempt → 503 → 403 → PIN |
-| `routes/system.js` | `/api/system` отдаёт `broadcast` |
+| `routes/system.js` | `/api/system` отдаёт `broadcasts` (активный журнал) и `broadcast` (последняя, для старых клиентов) |
 | `services/aiBrain.js` | `JARVIS_AI` проверяется живьём в `ask()` |
 | `services/memoryStore.js`, `services/scoreStore.js` | `clear()` для очистки из панели |
 | `index.html` | Оверлеи «ОФЛАЙН» и «АДМИН», fetch-обёртка (подставляет оба заголовка, ловит 503/403), JS панели, приём рассылки |
@@ -120,7 +125,10 @@ POST /api/admin/pins     {sitePin?, adminPin?, currentAdminPin?} → {ok, cfg} |
 POST /api/admin/guests   {allowed}             → {ok, cfg}
 POST /api/admin/ai       {enabled}             → {ok, aiEnabled}
 POST /api/admin/clear    {what: logs|memory|scores} → {ok} | 400
-POST /api/admin/broadcast {text}               → {ok} | 400
+POST /api/admin/broadcast {text}               → {ok, id} | 400
+GET  /api/admin/broadcasts                     → {list: [{id, text, ts, time}]} (новые сверху)
+POST /api/admin/broadcast/delete {id}          → {ok} | 400 | 404
+POST /api/admin/broadcast/clear                → {ok, cleared}
 POST /api/admin/restart                        → {ok} (новый процесс, старый уходит)
 GET  /api/admin/visitors                       → {list: [{ip, guest, first, last, lastAgo,
                                                         requests, lastAction, events[], blocked, kicked}]}
@@ -173,7 +181,7 @@ POST /api/admin/logout                         → {ok}
 7. Гости: `guests {allowed:false}` → запрос с `Host: windowshelper.win` → 403, `localhost` →
    200; возврат включено.
 8. ИИ: `ai {enabled:false}` → чат отвечает заготовкой (без обращения к 9router); включить обратно.
-9. Рассылка: `broadcast {text}` → `/api/system` содержит `broadcast.id`; клиент показывает 📣.
+9. Рассылка: `broadcast {text}` → `/api/system` содержит `broadcast.id`; клиент показывает 📣. `broadcasts` содержит запись, `GET /broadcasts` — журнал; `broadcast/delete {id}` → запись исчезает и из журнала, и из `/api/system` (клиент вычищает её из чата); `broadcast/clear` → журнал пуст.
 10. Очистка: `clear {what:logs}` → журнал пуст (кроме самой записи об очистке).
 11. Перезапуск: `restart` → порт 3000 поднимается заново ≤5 с, старый токен даёт 403.
 12. Домен: `https://windowshelper.win` → 200.

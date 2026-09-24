@@ -4,13 +4,19 @@ const router = express.Router();
 
 const { getStats } = require('../services/systemMonitor');
 const { getState, formatUptime } = require('../services/stateStore');
+const broadcastStore = require('../services/broadcastStore');
 
-// GET /api/system → { cpu, ram, network, broadcast }
-// broadcast — системная рассылка из админ-панели: отдаётся вместе с метриками,
-// которые клиент и так опрашивает каждые 2 секунды (без лишних запросов)
+// GET /api/system → { cpu, ram, network, broadcasts, broadcast }
+// broadcasts — активные рассылки из админ-панели (журнал), отдаются вместе
+// с метриками, которые клиент и так опрашивает каждые 2 секунды.
+// Клиент объявляет новые и вычищает из чата те, чьих id больше нет в списке —
+// так удаление из админки убирает сообщение у всех.
+// broadcast (последняя) — для совместимости со старыми закэшированными клиентами.
 router.get('/system', (req, res) => {
   const out = getStats();
-  out.broadcast = getState().broadcast || null;
+  const broadcasts = broadcastStore.list();
+  out.broadcasts = broadcasts;
+  out.broadcast = broadcasts[0] || null;
   res.json(out);
 });
 
