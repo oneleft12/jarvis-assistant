@@ -2459,6 +2459,29 @@ function gameStep(input) {
   }
 }
 
+/* --- сканирование УСТРОЙСТВА посетителя (гостевой режим, вместо процессов хоста) --- */
+function deviceScan() {
+  var ua = navigator.userAgent;
+  var browser = /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Chrome\//.test(ua) ? 'Chrome'
+    : /Safari\//.test(ua) ? 'Safari' : /Firefox\//.test(ua) ? 'Firefox' : 'неизвестен';
+  var os = /Windows/.test(ua) ? 'Windows' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS'
+    : /Mac OS/.test(ua) ? 'macOS' : /Linux/.test(ua) ? 'Linux' : '?';
+  termLog('Сканирование ВАШЕГО устройства:', 'ok');
+  termLog('  ОС/браузер: ' + os + ' · ' + browser, 'sys');
+  termLog('  Экран: ' + screen.width + '×' + screen.height + ' (окно ' +
+    window.innerWidth + '×' + window.innerHeight + ', DPR ' + (window.devicePixelRatio || 1) + ')', 'sys');
+  termLog('  Ядер CPU: ' + (navigator.hardwareConcurrency || 'н/д') +
+    ' · Тач-точек: ' + (navigator.maxTouchPoints || 0), 'sys');
+  termLog('  Язык: ' + navigator.language + ' · Онлайн: ' + (navigator.onLine ? 'да' : 'нет') +
+    ' · Память: ' + (navigator.deviceMemory ? navigator.deviceMemory + ' ГБ' : 'н/д'), 'sys');
+  if (navigator.getBattery) {
+    navigator.getBattery().then(function (b) {
+      termLog('  Батарея: ' + Math.round(b.level * 100) + '%' + (b.charging ? ' (зарядка)' : ''), 'sys');
+    }).catch(function () {});
+  }
+  termLog('Угроз не обнаружено. Устройство чисто.', 'ok');
+}
+
 /* --- анимированное сканирование --- */
 function runScan() {
   var steps = [
@@ -2833,6 +2856,8 @@ termInput.addEventListener('keydown', function (e) {
     })
       .then(function (r) { return r.json(); })
       .then(function (res) {
+        // гостевой режим: сервер вернул действие — выполняем его на ЭТОМ устройстве
+        if (res.status === 'client') { localGuestAction(res.action); return; }
         if (res.status === 'ok') termLog(res.message, 'ok');
         else termLog(res.message, 'err');
         if (action === 'system_scan' && res.status === 'ok' && typeof res.message === 'string') {
@@ -2846,6 +2871,34 @@ termInput.addEventListener('keydown', function (e) {
       });
   }
   JARVIS.callCommand = callCommand; // используется также в терминале (п.13)
+
+  // Гостевой режим: сервер отдал действие — выполняем на устройстве посетителя
+  function localGuestAction(action) {
+    termLog('Гостевой режим — выполняю у себя: ' + action, 'sys');
+    if (action === 'open_browser') {
+      var w = window.open('https://www.google.com', '_blank', 'noopener');
+      if (w) termLog('Открыл вкладку в ВАШЕМ браузере: google.com', 'ok');
+      else termLog('Браузер заблокировал всплывающую вкладку — разрешите её для этого сайта.', 'err');
+      return;
+    }
+    if (action === 'launch_game') {
+      startGame();
+      termLog('Игра у вас: я загадал число от 1 до 100. Вводи в терминал.', 'ok');
+      termInput.focus();
+      return;
+    }
+    if (action === 'system_scan') { deviceScan(); return; }
+    if (action === 'screenshot') {
+      var flash = document.getElementById('flash');
+      flash.classList.remove('go');
+      void flash.offsetWidth;
+      flash.classList.add('go');
+      termLog('Скриншот — только с основного устройства. Ваш дисплей: ' +
+        window.screen.width + '×' + window.screen.height + ' @' + (window.devicePixelRatio || 1) + 'x', 'sys');
+      return;
+    }
+    termLog('«' + action + '» — привилегия основного устройства, сэр.', 'err');
+  }
 
   var ACTIONS = {
     browser: function () {

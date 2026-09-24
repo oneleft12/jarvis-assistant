@@ -8,9 +8,11 @@ const memoryStore = require('../services/memoryStore'); // п.8: модуль п
 const pluginHost = require('../services/pluginHost');   // п.12: плагины
 const pcActions = require('../services/pcActions');     // п.13: управление ПК
 const aiBrain = require('../services/aiBrain');         // п.17: ИИ-личность
+const { isGuest } = require('../services/scope');       // гостевой режим: ПК-команды гостя не выполняем
 
 router.post('/', async (req, res) => {
   const message = (req.body && req.body.message) || '';
+  const guest = isGuest(req); // запрос через домен — гость
 
   if (!message.trim()) {
     return res.json({ reply: 'Сообщение не получено, сэр.', action: null });
@@ -41,16 +43,27 @@ router.post('/', async (req, res) => {
   if (action && action.type === 'theme') state.theme = action.value;
   if (action && action.type === 'rain') state.rain = action.value;
   if (action && action.type === 'memory_add') memoryStore.add(action.value);
-  if (action && action.type === 'command') {
+  const pcBlocked = guest && action && action.type === 'command';
+  if (action && action.type === 'command' && !guest) {
     // реальное действие с ПК (п.13) — выполняем и кладём результат в журнал
     pcActions.execute(action.value).then((r) => addLog(`ПК-команда: ${action.value} → ${r.status}`));
+  } else if (pcBlocked) {
+    addLog(`Гость просил ПК-команду «${action.value}» — хост не трогаю`);
   }
 
   // Запись в общий журнал
   const actionInfo = action ? `${action.type}=${action.value}` : 'без действия';
   addLog(`Чат: "${message}" → ${actionInfo}`);
 
-  res.json({ reply, action });
+  // Гостю про ПК-команды отвечаем честно: хост не трогали
+  const payload = {
+    reply: pcBlocked
+      ? 'Сэр, управление компьютером — привилегия основного устройства. На вашем устройстве всё под контролем.'
+      : reply,
+    action: pcBlocked ? null : action
+  };
+  if (guest) payload.scope = 'client'; // клиент знает, что он «гость»
+  res.json(payload);
 });
 
 module.exports = router;

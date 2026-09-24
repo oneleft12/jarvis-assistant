@@ -5,9 +5,16 @@ const router = express.Router();
 
 const { addLog } = require('../services/stateStore');
 const pcActions = require('../services/pcActions'); // п.13: реальные действия ПК
+const { isGuest } = require('../services/scope');   // гость через домен → действие на устройстве гостя
 
 router.post('/', async (req, res) => {
   const action = (req.body && req.body.action) || '';
+
+  // Гость через домен: действие выполняет ЕГО браузер, хост не трогаем
+  if (isGuest(req)) {
+    addLog(`Гость (${req.get('host')}): «${action}» → выполняется на устройстве гостя`);
+    return res.json({ status: 'client', action, message: 'Гостевой режим: действие выполняется у посетителя.' });
+  }
 
   try {
     // Сканирование — особый случай (нужен stdout)
