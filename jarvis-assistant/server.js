@@ -32,8 +32,9 @@ app.use((req, res, next) => {
   if (p !== '/' && !p.startsWith('/api/')) return next();   // статику не следим
   if (p === '/api/system') return next();                   // опрос каждые 2с — шум
   if (req.method !== 'GET' && req.method !== 'POST') return next();
+  // полный путь фиксируем СРАЗУ: к моменту res 'finish' req.path обрезан роутами
   res.on('finish', () => {
-    try { visitorsStore.record(req, res.statusCode); } catch (e) { /* не мешаем ответу */ }
+    try { visitorsStore.record(req, res.statusCode, p); } catch (e) { /* не мешаем ответу */ }
   });
   next();
 });

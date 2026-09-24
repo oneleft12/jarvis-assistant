@@ -53,9 +53,11 @@ function ago(ts) {
   return Math.round(m / 60) + ' ч назад';
 }
 
-// Что именно человек делал (без тел запросов — только суть)
-function actionText(req, status) {
-  const p = req.path;
+// Что именно человек делал (без тел запросов — только суть).
+// path — ПОЛЫН путь, сохранённый до маршрутизации: в момент res 'finish'
+// req.path уже обрезан вложенными роутами (app.use('/api/chat') → '/')
+function actionText(req, status, path) {
+  const p = path;
   let text = NAMES[p];
 
   if (p === '/api/chat') {
@@ -72,8 +74,8 @@ function actionText(req, status) {
   return text;
 }
 
-// Регистрирует одно действие (вызывается на res 'finish')
-function record(req, status) {
+// Регистрирует одно действие (вызывается на res 'finish', path — полный путь)
+function record(req, status, path) {
   const ip = clientKey(req);
   const now = Date.now();
 
@@ -85,7 +87,7 @@ function record(req, status) {
   c.guest = isGuest(req);
   c.last = now;
   c.requests += 1;
-  c.lastAction = actionText(req, status);
+  c.lastAction = actionText(req, status, path);
   c.events.unshift({ t: now, text: c.lastAction });
   if (c.events.length > MAX_EVENTS) c.events.length = MAX_EVENTS;
 
