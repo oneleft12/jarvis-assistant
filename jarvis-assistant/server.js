@@ -38,10 +38,12 @@ app.get('/script.js', (req, res) => res.sendFile(path.join(__dirname, 'script.js
 // === PIN-код и админ-режим (п.16 плана + админ-панель) ===
 // PIN-ы живут в data/admin.json (gitignored) и меняются из админ-панели
 const adminStore = require('./services/adminStore');
-const { isGuest } = require('./services/scope');
+const { isGuest, clientKey } = require('./services/scope');
 
-// rate-limit: не больше 10 неудачных попыток сайтового PIN за минуту
-const authFails = { n: 0, until: 0 };
+// rate-limit: не больше 10 неудачных попыток сайтового PIN за минуту — НА ОДИН IP.
+// Счётчик общий был: друг наспамил — «подождите минуту» получил и владелец.
+// Теперь чужой спам блокирует только адрес спамящего.
+const authFails = new Map(); // ip → { n, until, ts }
 
 // Заглушка на всё /api/* — регистрируется ДО роута /api/auth, чтобы при
 // выключенном сайте или закрытых гостях вход по PIN тоже блокировался:
@@ -74,18 +76,30 @@ app.use('/api', (req, res, next) => {
 
 // Вход: POST /api/auth { pin } → { ok: true } | 503 | 401 | 429
 app.post('/api/auth', (req, res) => {
-  if (Date.now() < authFails.until) {
+  const key = clientKey(req);
+  const now = Date.now();
+  const cur = authFails.get(key) || { n: 0, until: 0, ts: 0 };
+
+  if (now < cur.until) {
     return res.status(429).json({ error: 'Слишком много попыток. Подождите минуту.' });
   }
   const pin = String((req.body && req.body.pin) || '');
   if (pin && pin === adminStore.get().sitePin) {
-    authFails.n = 0;
+    authFails.delete(key);
     addLog('PIN: вход подтверждён');
     return res.json({ ok: true });
   }
-  addLog('PIN: неверная попытка');
-  authFails.n += 1;
-  if (authFails.n >= 10) { authFails.n = 0; authFails.until = Date.now() + 60000; }
+  addLog(`PIN: неверная попытка (ip ${key})`);
+  cur.n += 1;
+  cur.ts = now;
+  if (cur.n >= 10) { cur.n = 0; cur.until = now + 60000; }
+  authFails.set(key, cur);
+  // выкидываем протухшие ключи, чтобы Map не рос бесконечно
+  if (authFails.size > 50) {
+    authFails.forEach((v, k) => {
+      if (now >= (v.until || 0) && now - (v.ts || 0) > 60000) authFails.delete(k);
+    });
+  }
   res.status(401).json({ error: 'Неверный PIN-код' });
 });
 

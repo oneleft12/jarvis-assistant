@@ -10,4 +10,14 @@ function isGuest(req) {
   return host !== 'localhost' && host !== '127.0.0.1' && host !== '::1' && host !== '0.0.0.0';
 }
 
-module.exports = { isGuest };
+module.exports = { isGuest, clientKey };
+
+// Ключ клиента для rate-limit: за туннелом Cloudflare все запросы доходят
+// до сервера с 127.0.0.1, реальный IP посетителя — в CF-Connecting-IP
+// (edge перезаписывает его сам, подделать из браузера нельзя).
+// Локальный доступ (без заголовка) получает свой ключ — адрес сокета.
+function clientKey(req) {
+  const cf = String((req.get && req.get('cf-connecting-ip')) || '').trim();
+  if (cf) return cf;
+  return req.ip || (req.connection && req.connection.remoteAddress) || 'unknown';
+}

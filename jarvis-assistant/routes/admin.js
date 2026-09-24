@@ -12,9 +12,11 @@ const adminStore = require('../services/adminStore');
 const { state, addLog, formatUptime } = require('../services/stateStore');
 const memoryStore = require('../services/memoryStore');
 const scoreStore = require('../services/scoreStore');
+const { clientKey } = require('../services/scope');
 
-// Rate-limit входа: 5 неудач подряд → блокировка на 60 секунд
-const fails = { n: 0, until: 0 };
+// Rate-limit входа: 5 неудач подряд С ОДНОГО IP → блок этого IP на 60 секунд
+// (общий счётчик задевал бы всех: чужой спам не должен блокировать владельца)
+const fails = new Map(); // ip → { n, until, ts }
 
 // Публичная сводка (PIN-ы маскируются — в ответе они не светятся)
 function pub(cfg) {
@@ -31,23 +33,34 @@ function pub(cfg) {
 
 // Вход: POST /api/admin/login { pin } → { ok, token, cfg }
 router.post('/login', (req, res) => {
-  if (Date.now() < fails.until) {
+  const key = clientKey(req);
+  const now = Date.now();
+  const cur = fails.get(key) || { n: 0, until: 0, ts: 0 };
+
+  if (now < cur.until) {
     return res.status(429).json({ error: 'Слишком много попыток. Подождите минуту.' });
   }
   const pin = String((req.body && req.body.pin) || '');
   const cfg = adminStore.get();
 
   if (pin && pin === cfg.adminPin) {
-    fails.n = 0;
+    fails.delete(key);
     const token = crypto.randomBytes(24).toString('hex');
     adminStore.tokens.add(token);
     addLog('Админ: вход в панель выполнен');
     return res.json({ ok: true, token, cfg: pub(cfg) });
   }
 
-  fails.n += 1;
-  addLog(`Админ: неверный PIN (${fails.n}/5)`);
-  if (fails.n >= 5) { fails.n = 0; fails.until = Date.now() + 60000; }
+  cur.n += 1;
+  cur.ts = now;
+  addLog(`Админ: неверный PIN (${cur.n}/5, ip ${key})`);
+  if (cur.n >= 5) { cur.n = 0; cur.until = now + 60000; }
+  fails.set(key, cur);
+  if (fails.size > 50) {
+    fails.forEach((v, k) => {
+      if (now >= (v.until || 0) && now - (v.ts || 0) > 60000) fails.delete(k);
+    });
+  }
   res.status(401).json({ error: 'Неверный админ-PIN' });
 });
 
