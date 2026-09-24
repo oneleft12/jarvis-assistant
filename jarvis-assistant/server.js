@@ -43,28 +43,14 @@ const { isGuest } = require('./services/scope');
 // rate-limit: не больше 10 неудачных попыток сайтового PIN за минуту
 const authFails = { n: 0, until: 0 };
 
-// Вход: POST /api/auth { pin } → { ok: true } | 401 | 429
-app.post('/api/auth', (req, res) => {
-  if (Date.now() < authFails.until) {
-    return res.status(429).json({ error: 'Слишком много попыток. Подождите минуту.' });
-  }
-  const pin = String((req.body && req.body.pin) || '');
-  if (pin && pin === adminStore.get().sitePin) {
-    authFails.n = 0;
-    addLog('PIN: вход подтверждён');
-    return res.json({ ok: true });
-  }
-  addLog('PIN: неверная попытка');
-  authFails.n += 1;
-  if (authFails.n >= 10) { authFails.n = 0; authFails.until = Date.now() + 60000; }
-  res.status(401).json({ error: 'Неверный PIN-код' });
-});
-
-// Заглушка на всё /api/*:
+// Заглушка на всё /api/* — регистрируется ДО роута /api/auth, чтобы при
+// выключенном сайте или закрытых гостях вход по PIN тоже блокировался:
 //  - админ-токен (x-jarvis-admin) — полный доступ, даже при выключенном сайте;
+//  - вход в админку (/api/admin/login) — работает всегда (rate-limit в роуте);
 //  - сайт выключен → 503 для всех, кроме админа (посетители видят «офлайн»);
 //  - гости отключены → 403 для запросов через домен;
-//  - остальные: заголовок x-jarvis-pin (кроме /api/auth и /api/admin/login).
+//  - /api/auth при работающем сайте — пропускается (rate-limit в роуте ниже);
+//  - остальные: заголовок x-jarvis-pin.
 app.use('/api', (req, res, next) => {
   const admTok = String(req.get('x-jarvis-admin') || '');
   if (admTok && adminStore.tokens.has(admTok)) return next();
@@ -84,6 +70,23 @@ app.use('/api', (req, res, next) => {
   if (req.path === '/auth') return next();
   if (String(req.get('x-jarvis-pin') || '') === cfg.sitePin) return next();
   res.status(401).json({ error: 'pin_required' });
+});
+
+// Вход: POST /api/auth { pin } → { ok: true } | 503 | 401 | 429
+app.post('/api/auth', (req, res) => {
+  if (Date.now() < authFails.until) {
+    return res.status(429).json({ error: 'Слишком много попыток. Подождите минуту.' });
+  }
+  const pin = String((req.body && req.body.pin) || '');
+  if (pin && pin === adminStore.get().sitePin) {
+    authFails.n = 0;
+    addLog('PIN: вход подтверждён');
+    return res.json({ ok: true });
+  }
+  addLog('PIN: неверная попытка');
+  authFails.n += 1;
+  if (authFails.n >= 10) { authFails.n = 0; authFails.until = Date.now() + 60000; }
+  res.status(401).json({ error: 'Неверный PIN-код' });
 });
 
 // API-роуты
