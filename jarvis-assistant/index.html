@@ -1227,6 +1227,38 @@
   }
   .snake-hint { font-size: 12px; opacity: 0.7; align-self: center; }
 
+  /* D-pad для Snake: появляется только на тач-устройствах (телефон/планшет) */
+  .dpad {
+    display: none;
+    grid-template-columns: repeat(3, 58px);
+    grid-template-rows: repeat(3, 50px);
+    gap: 6px;
+    justify-content: center;
+    margin: 12px auto 2px;
+  }
+  @media (hover: none) and (pointer: coarse) { .dpad { display: grid; } }
+  .dbtn {
+    border: 1px solid rgba(var(--accent-rgb), 0.5);
+    background: rgba(var(--accent-rgb), 0.1);
+    color: var(--accent);
+    border-radius: 10px;
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+  }
+  .dbtn:active {
+    background: rgba(var(--accent-rgb), 0.35);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.5);
+  }
+  .d-up { grid-column: 2; grid-row: 1; }
+  .d-left { grid-column: 1; grid-row: 2; }
+  .d-pause { grid-column: 2; grid-row: 2; font-size: 14px; }
+  .d-right { grid-column: 3; grid-row: 2; }
+  .d-down { grid-column: 2; grid-row: 3; }
+
   /* ===== PIN-ОВЕРЛЕЙ (п.16 плана) ===== */
   .pin-overlay {
     position: fixed;
@@ -1585,7 +1617,7 @@
 
         <div class="game-view" id="gv-runner">
           <div class="game-hud">
-            <span>SPACE / ↑ / клик — прыжок</span>
+            <span>SPACE / ↑ / тап по полю — прыжок</span>
             <span>↓ — пригнуться (и быстрое падение в воздухе)</span>
             <button class="ctl-btn" id="dinoRestart">Заново</button>
           </div>
@@ -1616,8 +1648,15 @@
             <button class="ctl-btn" id="snakeRestart">Заново</button>
           </div>
           <canvas id="snakeCanvas" width="360" height="360"></canvas>
+          <div class="dpad" id="snakePad" aria-label="Управление змейкой на телефоне">
+            <button class="dbtn d-up" data-d="up" aria-label="Вверх">▲</button>
+            <button class="dbtn d-left" data-d="left" aria-label="Влево">◀</button>
+            <button class="dbtn d-pause" data-d="pause" aria-label="Пауза">❚❚</button>
+            <button class="dbtn d-right" data-d="right" aria-label="Вправо">▶</button>
+            <button class="dbtn d-down" data-d="down" aria-label="Вниз">▼</button>
+          </div>
           <div class="game-keys">
-            <span class="snake-hint">←↑↓→ или WASD — движение · SPACE — пауза · ESC — стоп</span>
+            <span class="snake-hint">←↑↓→ или WASD — движение · SPACE — пауза · ESC — стоп · на телефоне — свайп по полю или кнопки-стрелки</span>
           </div>
           <div class="logs-note">не врезайтесь в стену и в себя · 10 очков за еду · счёт уходит в таблицу рекордов</div>
         </div>
@@ -4696,6 +4735,20 @@ JARVIS.postScore = function (game, score) {
     reset(); tone(700, 0.06);
   }
 
+  // направления общие для клавиатуры, D-pad и свайпа
+  var DIRS = {
+    up: { x: 0, y: -1 }, down: { x: 0, y: 1 },
+    left: { x: -1, y: 0 }, right: { x: 1, y: 0 }
+  };
+
+  function turn(d) {
+    if (d.x === -dir.x && d.y === -dir.y) return; // разворот запрещён
+    nextDir = d;
+    if (dead) restart();
+  }
+
+  function togglePause() { if (dead) restart(); else paused = !paused; }
+
   document.addEventListener('keydown', function (e) {
     if (!isActive() || inInput()) return;
     var k = e.key.toLowerCase();
@@ -4707,20 +4760,49 @@ JARVIS.postScore = function (game, score) {
     };
     if (map[k]) {
       e.preventDefault();
-      var d = map[k];
-      if (d.x === -dir.x && d.y === -dir.y) return; // разворот запрещён
-      nextDir = d;
-      if (dead) restart();
+      turn(map[k]);
     } else if (e.code === 'Space') {
       e.preventDefault();
-      if (dead) restart();
-      else paused = !paused;
+      togglePause();
     } else if (e.key === 'Escape') {
       paused = true;
     }
   });
 
-  cv.addEventListener('pointerdown', function (e) { e.preventDefault(); if (dead) restart(); else paused = !paused; });
+  // мышь по canvas — пауза; тачем поле управляет свайп (см. ниже)
+  cv.addEventListener('pointerdown', function (e) {
+    if (e.pointerType === 'touch') return;
+    e.preventDefault();
+    togglePause();
+  });
+
+  // экранный D-pad (телефон): направления + пауза в центре
+  var pad = document.getElementById('snakePad');
+  if (pad) pad.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    var b = e.target.closest ? e.target.closest('.dbtn') : null;
+    if (!b) return;
+    var a = b.getAttribute('data-d');
+    if (a === 'pause') togglePause();
+    else if (DIRS[a]) turn(DIRS[a]);
+  });
+
+  // свайп по полю — поворот; короткий тап — пауза/рестарт
+  var sw = null;
+  cv.addEventListener('touchstart', function (e) {
+    var t = e.changedTouches[0];
+    sw = { x: t.clientX, y: t.clientY };
+  }, { passive: true });
+  cv.addEventListener('touchend', function (e) {
+    if (!sw) return;
+    var t = e.changedTouches[0];
+    var dx = t.clientX - sw.x, dy = t.clientY - sw.y;
+    sw = null;
+    if (Math.abs(dx) < 26 && Math.abs(dy) < 26) { togglePause(); return; }
+    if (Math.abs(dx) > Math.abs(dy)) turn(dx > 0 ? DIRS.right : DIRS.left);
+    else turn(dy > 0 ? DIRS.down : DIRS.up);
+  }, { passive: true });
+
   var rb = document.getElementById('snakeRestart');
   if (rb) rb.addEventListener('click', function () { reset(); });
 
