@@ -1523,15 +1523,16 @@
 
       <div class="tab-content active" id="tab-about">
         <h3>J.A.R.V.I.S. — Windows Assistant</h3>
-        <p>Голографический HUD-интерфейс персонального помощника в духе Джарвиса из «Железного человека»: кибер-дождь, пульсирующее ядро, живая статистика системы, чат с разбором команд и терминал. Фронтенд — чистый HTML/CSS/JS, бэкенд — Node.js + Express, доступ из интернета — через Cloudflare Tunnel.</p>
-        <p>Все действия — смена темы, переключение дождя, быстрые команды и журнал — синхронизируются с сервером в реальном времени. Функции, где отвечает настоящий ИИ (модель через 9router), помечены бейджом <span class="badge ai">ИИ</span>.</p>
+        <p>Голографический HUD-интерфейс персонального помощника в духе Джарвиса из «Железного человека»: кибер-дождь, пульсирующее ядро, живая статистика системы, чат с разбором команд, терминал и игровой зал (Neon Runner, Memory, Snake). Фронтенд — один файл чистого HTML/CSS/JS + PWA, бэкенд — Node.js + Express, наружу — постоянный домен windowshelper.win (Cloudflare Named Tunnel). Интерфейс адаптирован под телефон: тач-управление играми, D-pad и свайпы.</p>
+        <p>Все действия — смена темы, переключение дождя, быстрые команды и журнал — синхронизируются с сервером в реальном времени. Функции, где отвечает настоящий ИИ (модель через 9router), помечены бейджом <span class="badge ai">ИИ</span>. Доступ защищён PIN-кодом, а посетители через домен работают в гостевом режиме: команды выполняются на их устройстве, твой хост они не трогают.</p>
         <div class="info-grid">
-          <div class="info-card"><div class="k">Версия</div><div class="v">v2.6</div></div>
-          <div class="info-card"><div class="k">Frontend</div><div class="v">HTML / CSS / JS</div></div>
+          <div class="info-card"><div class="k">Версия</div><div class="v">v2.7</div></div>
+          <div class="info-card"><div class="k">Frontend</div><div class="v">HTML / CSS / JS · PWA</div></div>
           <div class="info-card"><div class="k">Backend</div><div class="v">Node.js + Express</div></div>
           <div class="info-card"><div class="k">Порт</div><div class="v">localhost:3000</div></div>
-          <div class="info-card"><div class="k">Туннель</div><div class="v">trycloudflare.com</div></div>
+          <div class="info-card"><div class="k">Домен</div><div class="v" title="Cloudflare Named Tunnel «jarvis» → localhost:3000">windowshelper.win</div></div>
           <div class="info-card"><div class="k">ИИ-модель</div><div class="v" title="Локальный роутер 9router/omniroute, основная mimo-v2.6-flash-free">9router · mimo-v2.6</div></div>
+          <div class="info-card"><div class="k">Доступ</div><div class="v" title="PIN вводится один раз, дальше fetch подставляет заголовок x-jarvis-pin">PIN · x-jarvis-pin</div></div>
           <div class="info-card"><div class="k">Статус</div><div class="v">Online</div></div>
         </div>
       </div>
@@ -1563,15 +1564,31 @@
             <h4>THEME ENGINE</h4>
             <p>Четыре темы (cyan, matrix, violet, amber) на CSS-переменных: панели, кнопки, ядро и дождь перекрашиваются мгновенно. Выбор хранится в localStorage и на сервере.</p>
           </div>
+          <div class="module">
+            <h4>GAME ARCADE</h4>
+            <p>Три игры: Neon Runner, Memory и Snake — с серверной таблицей рекордов top-10. На телефоне управление тачем: кнопки прыжка/пригнуться, D-pad и свайп для змейки, тапы по карточкам.</p>
+          </div>
+          <div class="module">
+            <h4>ACCESS &amp; GUEST MODE</h4>
+            <p>PIN-гейт на все /api/* (заголовок x-jarvis-pin). Запросы через домен получают гостевой режим: браузер, игра и сканирование выполняются на устройстве посетителя, а замок/громкость/сон хоста ему недоступны.</p>
+          </div>
+          <div class="module">
+            <h4>VOICE INTERFACE</h4>
+            <p>Web Speech API: голосовой ввод с микрофона (распознавание речи) и озвучка ответов Джарвиса (speechSynthesis). Включается кнопкой в шапке, язык — ru-RU.</p>
+          </div>
+          <div class="module">
+            <h4>DEPLOY &amp; AUTOSTART</h4>
+            <p>install.bat → HKCU Run: при входе в Windows поднимаются сервер и cloudflared, домен windowshelper.win работает постоянно. PWA: manifest, service worker, иконка на экране телефона.</p>
+          </div>
         </div>
       </div>
 
       <div class="tab-content" id="tab-api">
         <h3>REST API</h3>
         <div class="api-list">
-          <div class="api-item"><span class="api-method">POST</span><span class="api-path">/api/chat</span><span class="badge ai">ИИ</span><span class="api-desc">тело { message, history } → { reply, action } — ИИ-ответ (9router) или действие (тема/дождь)</span></div>
+          <div class="api-item"><span class="api-method">POST</span><span class="api-path">/api/chat</span><span class="badge ai">ИИ</span><span class="api-desc">тело { message, history } → { reply, action, scope? } — ИИ-ответ (9router) · для гостей: scope=client, ПК-команды не выполняются</span></div>
           <div class="api-item"><span class="api-method get">GET</span><span class="api-path">/api/system</span><span class="api-desc">→ { cpu, ram, network } — метрики каждые 2 сек</span></div>
-          <div class="api-item"><span class="api-method">POST</span><span class="api-path">/api/command</span><span class="api-desc">тело { action } → { status, message } — open_browser | launch_game | screenshot | system_scan</span></div>
+          <div class="api-item"><span class="api-method">POST</span><span class="api-path">/api/command</span><span class="api-desc">тело { action } → { status, message } — open_browser | launch_game | screenshot | system_scan | lock | volume_* | mute | explorer | sleep_pc · гость: status=client (у посетителя)</span></div>
           <div class="api-item"><span class="api-method">POST</span><span class="api-path">/api/terminal</span><span class="api-desc">тело { command } → { output, clear } — help, ping, theme, rain, status, clear</span></div>
           <div class="api-item"><span class="api-method get">GET</span><span class="api-path">/api/state</span><span class="api-desc">→ { theme, rain, online, uptime, logs } — состояние и журнал (50 записей)</span></div>
           <div class="api-item"><span class="api-method post">POST</span><span class="api-path">/api/auth</span><span class="api-desc">тело { pin } → { ok: true } | 401 — остальной /api/* требует заголовок x-jarvis-pin</span></div>
@@ -1673,12 +1690,14 @@
           <div class="road-item"><span>Автозапуск с Windows: install.bat → HKCU Run (сервер + туннель windowshelper.win)</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>HUD-интерфейс, ядро с перегрузкой и взрывом</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>Бэкенд: чат, мониторинг, команды, терминал, журнал</span><span class="badge done">Готово</span></div>
-          <div class="road-item"><span>Доступ с любого устройства через Cloudflare Tunnel</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>Доступ с любого устройства: домен windowshelper.win (Cloudflare Named Tunnel)</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>Игра Neon Runner (динозаврик в стиле HUD)</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>Модуль памяти: «запомни…» / «что ты помнишь»</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>Плагины: погода по городу, курсы валют НБК</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>Управление ПК: замок, громкость, спящий режим, проводник</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>Игровой зал: Memory, Snake и серверная таблица рекордов</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>Управление играми с телефона: тач-кнопки, D-pad, свайп по полю</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>Гостевой режим: посетители через домен действуют на своём устройстве, хост в безопасности</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>PWA: manifest, service worker, офлайн-режим</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>PIN-доступ к API</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>ИИ-чат: личность Джарвиса на локальной LLM (9router, mimo-v2.6 + запасная muse)</span><span class="badge ai">ИИ</span><span class="badge done">Готово</span></div>
@@ -1688,7 +1707,7 @@
   </div>
 </main>
 
-<footer>J.A.R.V.I.S. INTERFACE v2.6 // ALL SYSTEMS NOMINAL</footer>
+<footer>J.A.R.V.I.S. INTERFACE v2.7 // ALL SYSTEMS NOMINAL</footer>
 
 <script>
 /* ================================================================
@@ -2675,7 +2694,7 @@ function runLocalCommand(cmd, args) {
     }
 
     case 'about':
-      termLog('J.A.R.V.I.S. Interface v2.6 — HUD-интерфейс для Windows.', 'ok');
+      termLog('J.A.R.V.I.S. Interface v2.7 — HUD-интерфейс для Windows.', 'ok');
       termLog('Стек: чистый HTML + CSS + JavaScript, без зависимостей.');
       termLog('Тема: ' + document.body.getAttribute('data-theme') + ' | Дождь: ' + (JARVIS.rainIsOn() ? 'вкл' : 'выкл'));
       break;
@@ -4923,7 +4942,7 @@ JARVIS.postScore = function (game, score) {
   if (savedRain === '0') JARVIS.rainOff();
   updateRainBtn();
 
-  termLog('J.A.R.V.I.S. Terminal v2.6 — инициализация завершена.', 'ok');
+  termLog('J.A.R.V.I.S. Terminal v2.7 — инициализация завершена.', 'ok');
   termLog('Введи help, чтобы увидеть список команд.', 'sys');
 
   // === PIN-доступ (п.16 плана): оверлей-заглушка ===
