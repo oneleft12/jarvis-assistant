@@ -13,6 +13,7 @@ const { state, addLog, formatUptime } = require('../services/stateStore');
 const memoryStore = require('../services/memoryStore');
 const scoreStore = require('../services/scoreStore');
 const { clientKey } = require('../services/scope');
+const visitorsStore = require('../services/visitorsStore');
 
 // Rate-limit входа: 5 неудач подряд С ОДНОГО IP → блок этого IP на 60 секунд
 // (общий счётчик задевал бы всех: чужой спам не должен блокировать владельца)
@@ -82,7 +83,7 @@ router.post('/logout', (req, res) => {
 router.get('/status', (req, res) => {
   res.json(Object.assign(pub(adminStore.get()), {
     uptime: formatUptime(process.uptime()),
-    version: 'v2.8',
+    version: 'v2.9',
     logs: state.logs.length,
     memory: memoryStore.list().length,
     tokens: adminStore.tokens.size
@@ -197,6 +198,50 @@ router.post('/restart', (req, res) => {
     }
     setTimeout(() => process.exit(0), 300);
   }, 400);
+});
+
+// === Посетители: IP-адреса, действия, кик/бан ===
+function cleanIp(v) {
+  const ip = String((v && v.ip) || '').trim();
+  if (!ip || ip.length > 64 || !/^[0-9a-fA-F:.]+$/.test(ip)) return null;
+  return ip;
+}
+
+// Список: GET /api/admin/visitors → { list: [...] }
+router.get('/visitors', (req, res) => {
+  const cfg = adminStore.get();
+  res.json({ list: visitorsStore.list(new Set(cfg.blockedIPs || [])) });
+});
+
+// Кик: выкидывает посетителя на 60 секунд, потом может вернуться
+router.post('/kick', (req, res) => {
+  const ip = cleanIp(req.body);
+  if (!ip) return res.status(400).json({ error: 'bad ip' });
+  visitorsStore.kick(ip);
+  addLog(`Админ: кик IP ${ip} (60 сек)`);
+  res.json({ ok: true });
+});
+
+// Бан: пока не разблокируют в панели (переживает перезапуск)
+router.post('/ban', (req, res) => {
+  const ip = cleanIp(req.body);
+  if (!ip) return res.status(400).json({ error: 'bad ip' });
+  const cfg = adminStore.get();
+  const list = Array.isArray(cfg.blockedIPs) ? cfg.blockedIPs.slice() : [];
+  if (!list.includes(ip)) list.push(ip);
+  adminStore.set({ blockedIPs: list });
+  addLog(`Админ: блок IP ${ip}`);
+  res.json({ ok: true });
+});
+
+// Разблок
+router.post('/unban', (req, res) => {
+  const ip = cleanIp(req.body);
+  if (!ip) return res.status(400).json({ error: 'bad ip' });
+  const cfg = adminStore.get();
+  adminStore.set({ blockedIPs: (cfg.blockedIPs || []).filter((x) => x !== ip) });
+  addLog(`Админ: разблок IP ${ip}`);
+  res.json({ ok: true });
 });
 
 module.exports = router;

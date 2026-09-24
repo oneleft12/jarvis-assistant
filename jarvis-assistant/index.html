@@ -1383,6 +1383,28 @@
   .adm-note { font-size: 11px; min-height: 14px; margin-top: 6px; color: #6dff9e; }
   .adm-note.err { color: #ff5f77; }
 
+  /* список посетителей */
+  .vis-list { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+  .vis-row { border: 1px solid rgba(var(--accent-rgb), 0.2); border-radius: 6px; padding: 6px 8px; background: rgba(0, 0, 0, 0.3); }
+  .vis-row.blocked { border-color: #ff5f77; }
+  .vis-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; cursor: pointer; }
+  .vis-ip { font: 700 13px Consolas, monospace; color: var(--accent); }
+  .vis-role {
+    font-size: 9px;
+    letter-spacing: 1px;
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
+    border-radius: 8px;
+    padding: 1px 6px;
+    opacity: 0.8;
+  }
+  .vis-flag { font-size: 9px; color: #ff5f77; letter-spacing: 1px; }
+  .vis-meta { margin-left: auto; font-size: 10px; opacity: 0.55; }
+  .vis-last { font-size: 11px; opacity: 0.75; margin-top: 3px; word-break: break-all; }
+  .vis-btns { display: flex; gap: 6px; margin-top: 6px; }
+  .vis-events { margin-top: 6px; border-top: 1px dashed rgba(var(--accent-rgb), 0.25); padding-top: 4px; }
+  .vis-ev { font: 10px/1.7 Consolas, monospace; opacity: 0.7; word-break: break-all; }
+  .vis-empty { font-size: 11px; opacity: 0.5; padding: 4px 0; }
+
   /* индикатор ответа ИИ */
   .msg.typing { opacity: 0.7; }
   .typing-dots {
@@ -1522,6 +1544,12 @@
         <div class="adm-h">РЕЖИМЫ</div>
         <label class="adm-row"><input type="checkbox" id="admGuests"> Гости через домен</label>
         <label class="adm-row"><input type="checkbox" id="admAI"> ИИ-чат (9router)</label>
+      </div>
+
+      <div class="adm-sec">
+        <div class="adm-h">ПОСЕТИТЕЛИ</div>
+        <div id="admVisitors" class="vis-list"><div class="vis-empty">загрузка…</div></div>
+        <button class="ctl-btn sm" id="admVisRefresh">↻ ОБНОВИТЬ</button>
       </div>
 
       <div class="adm-sec">
@@ -1744,7 +1772,7 @@
           <div class="api-item"><span class="api-method">POST</span><span class="api-path">/api/terminal</span><span class="api-desc">тело { command } → { output, clear } — help, ping, theme, rain, status, clear</span></div>
           <div class="api-item"><span class="api-method get">GET</span><span class="api-path">/api/state</span><span class="api-desc">→ { theme, rain, online, uptime, logs } — состояние и журнал (50 записей)</span></div>
           <div class="api-item"><span class="api-method post">POST</span><span class="api-path">/api/auth</span><span class="api-desc">тело { pin } → { ok: true } | 401 — остальной /api/* требует заголовок x-jarvis-pin</span></div>
-          <div class="api-item"><span class="api-method post">POST</span><span class="api-path">/api/admin/*</span><span class="api-desc">login → токен x-jarvis-admin · status | site | pins | guests | ai | clear | broadcast | restart — с токеном, работает даже при выключенном сайте (login: 5 попыток/мин)</span></div>
+          <div class="api-item"><span class="api-method post">POST</span><span class="api-path">/api/admin/*</span><span class="api-desc">login → токен x-jarvis-admin · status | site | pins | guests | ai | clear | broadcast | restart | visitors | kick | ban | unban — с токеном, работает даже при выключенном сайте (rate-limit 5/мин на IP)</span></div>
           <div class="api-item"><span class="api-method get">GET</span><span class="api-path">/api/plugins</span><span class="api-desc">→ { commands: [{ cmd, desc, plugin }] } — реестр плагинов</span></div>
           <div class="api-item"><span class="api-method">POST</span><span class="api-path">/api/scores</span><span class="api-desc">тело { game, score, name } → таблица рекордов (runner|memory|snake), GET ?game= — топ-10</span></div>
         </div>
@@ -1853,6 +1881,7 @@
           <div class="road-item"><span>Гостевой режим: посетители через домен действуют на своём устройстве, хост в безопасности</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>Админ-панель: PIN-вход, отключение сайта для посетителей, смена PIN-кодов</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>Админ-инструменты: режимы гостей/ИИ, рассылка, очистка данных, перезапуск</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>Посетители: IP-адреса и действия в реальном времени, кнопки КИК и БАН</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>PWA: manifest, service worker, офлайн-режим</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>PIN-доступ к API</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>ИИ-чат: личность Джарвиса на локальной LLM (9router, mimo-v2.6 + запасная muse)</span><span class="badge ai">ИИ</span><span class="badge done">Готово</span></div>
@@ -1862,7 +1891,7 @@
   </div>
 </main>
 
-<footer>J.A.R.V.I.S. INTERFACE v2.8 // ALL SYSTEMS NOMINAL</footer>
+<footer>J.A.R.V.I.S. INTERFACE v2.9 // ALL SYSTEMS NOMINAL</footer>
 
 <script>
 /* ================================================================
@@ -1906,7 +1935,12 @@ var JARVIS = {};
           .json()
           .then(function (d) {
             if (!d) return;
-            if ((d.error === 'site_disabled' || d.error === 'guests_disabled') && JARVIS.showDown) {
+            // бан/кик из админки: сбрасываем свой PIN — после разблокировки войдём заново
+            if (d.error === 'ip_blocked' || d.error === 'ip_kicked') {
+              try { sessionStorage.removeItem('jarvis-pin'); } catch (e) {}
+            }
+            if ((d.error === 'site_disabled' || d.error === 'guests_disabled' ||
+                 d.error === 'ip_blocked' || d.error === 'ip_kicked') && JARVIS.showDown) {
               JARVIS.showDown(d.message);
             }
             if (d.error === 'admin_token_required' && JARVIS.adminRelogin) JARVIS.adminRelogin();
@@ -2876,7 +2910,7 @@ function runLocalCommand(cmd, args) {
     }
 
     case 'about':
-      termLog('J.A.R.V.I.S. Interface v2.8 — HUD-интерфейс для Windows.', 'ok');
+      termLog('J.A.R.V.I.S. Interface v2.9 — HUD-интерфейс для Windows.', 'ok');
       termLog('Стек: чистый HTML + CSS + JavaScript, без зависимостей.');
       termLog('Тема: ' + document.body.getAttribute('data-theme') + ' | Дождь: ' + (JARVIS.rainIsOn() ? 'вкл' : 'выкл'));
       break;
@@ -5124,7 +5158,7 @@ JARVIS.postScore = function (game, score) {
   if (savedRain === '0') JARVIS.rainOff();
   updateRainBtn();
 
-  termLog('J.A.R.V.I.S. Terminal v2.8 — инициализация завершена.', 'ok');
+  termLog('J.A.R.V.I.S. Terminal v2.9 — инициализация завершена.', 'ok');
   termLog('Введи help, чтобы увидеть список команд.', 'sys');
 
   // === PIN-доступ (п.16 плана): оверлей-заглушка ===
@@ -5269,6 +5303,7 @@ JARVIS.postScore = function (game, score) {
           document.getElementById('admMsg').value = s.maintenanceMsg || '';
           document.getElementById('admGuests').checked = !!s.guestsAllowed;
           document.getElementById('admAI').checked = !!s.aiEnabled;
+          loadVisitors();
         })
         .catch(function (e) { if (e.status === 403) JARVIS.adminRelogin(); else say(failText(e), true); });
     }
@@ -5388,6 +5423,78 @@ JARVIS.postScore = function (game, score) {
       JARVIS.adminRelogin();
       termLog('Админ-панель: выход.', 'sys');
     });
+
+    // --- посетители: IP-адреса и действия, кик/бан ---
+    var visBox = document.getElementById('admVisitors');
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+      });
+    }
+    function loadVisitors() {
+      api('/api/admin/visitors')
+        .then(function (d) {
+          var list = d.list || [];
+          if (!list.length) {
+            visBox.innerHTML = '<div class="vis-empty">пока никого — IP появится здесь, как только кто-то зайдёт</div>';
+            return;
+          }
+          visBox.innerHTML = list.map(function (v) {
+            var evs = (v.events || [])
+              .map(function (e) { return '<div class="vis-ev">' + esc(e.t) + ' — ' + esc(e.text) + '</div>'; })
+              .join('');
+            var btns = v.blocked
+              ? '<button class="ctl-btn sm" data-act="unban" data-ip="' + esc(v.ip) + '">РАЗБАН</button>'
+              : '<button class="ctl-btn sm danger" data-act="kick" data-ip="' + esc(v.ip) + '">КИК</button>' +
+                '<button class="ctl-btn sm danger" data-act="ban" data-ip="' + esc(v.ip) + '">БАН</button>';
+            var flags =
+              (v.blocked ? '<span class="vis-flag">заблокирован</span>' : '') +
+              (v.kicked ? '<span class="vis-flag">кик</span>' : '');
+            return (
+              '<div class="vis-row' + (v.blocked ? ' blocked' : '') + '">' +
+                '<div class="vis-head">' +
+                  '<span class="vis-ip">' + esc(v.ip) + '</span>' +
+                  '<span class="vis-role">' + (v.guest ? 'гость' : 'локал') + '</span>' +
+                  flags +
+                  '<span class="vis-meta">' + v.requests + ' запросов · ' + esc(v.lastAgo) + '</span>' +
+                '</div>' +
+                '<div class="vis-last">↳ ' + esc(v.lastAction || '—') + '</div>' +
+                '<div class="vis-btns">' + btns + '</div>' +
+                '<div class="vis-events" hidden>' + evs + '</div>' +
+              '</div>'
+            );
+          }).join('');
+
+          // по клику на строку — раскрываем историю действий
+          visBox.querySelectorAll('.vis-head').forEach(function (h) {
+            h.addEventListener('click', function () {
+              var ev = h.parentNode.querySelector('.vis-events');
+              if (ev) ev.hidden = !ev.hidden;
+            });
+          });
+          visBox.querySelectorAll('button[data-act]').forEach(function (b) {
+            b.addEventListener('click', function () {
+              var act = b.getAttribute('data-act');
+              var ip = b.getAttribute('data-ip');
+              var label = act === 'kick' ? 'кикнуть' : act === 'ban' ? 'заблокировать' : 'разблокировать';
+              if (!confirm(label + ' ' + ip + '?')) return;
+              api('/api/admin/' + act, { ip: ip })
+                .then(function () {
+                  say((act === 'kick' ? 'Кик: ' : act === 'ban' ? 'Блок: ' : 'Разблок: ') + ip);
+                  loadVisitors();
+                })
+                .catch(function (e) { say(failText(e), true); });
+            });
+          });
+        })
+        .catch(function (e) { if (e.status === 403) JARVIS.adminRelogin(); else say(failText(e), true); });
+    }
+    document.getElementById('admVisRefresh').addEventListener('click', loadVisitors);
+
+    // автообновление списка раз в 5 секунд, пока панель открыта
+    setInterval(function () {
+      if (!panel.hidden && !ov.classList.contains('pin-hide')) loadVisitors();
+    }, 5000);
 
     document.getElementById('admClose').addEventListener('click', close);
 

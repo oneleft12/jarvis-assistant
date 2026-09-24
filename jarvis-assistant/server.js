@@ -25,6 +25,19 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json());
 
+// Журнал посетителей: IP и действия на сайте (в памяти, кроме опроса метрик)
+const visitorsStore = require('./services/visitorsStore');
+app.use((req, res, next) => {
+  const p = req.path;
+  if (p !== '/' && !p.startsWith('/api/')) return next();   // статику не следим
+  if (p === '/api/system') return next();                   // опрос каждые 2с — шум
+  if (req.method !== 'GET' && req.method !== 'POST') return next();
+  res.on('finish', () => {
+    try { visitorsStore.record(req, res.statusCode); } catch (e) { /* не мешаем ответу */ }
+  });
+  next();
+});
+
 // Фронтенд: index.html лежит в корне проекта
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 // Раздельные ассеты, если появятся
@@ -62,6 +75,15 @@ app.use('/api', (req, res, next) => {
   if (req.path.startsWith('/admin/login')) return next();
 
   const cfg = adminStore.get();
+  const ip = clientKey(req);
+
+  // бан и кик из админ-панели (бан живёт в data/admin.json, кик — 60 секунд)
+  if (Array.isArray(cfg.blockedIPs) && cfg.blockedIPs.includes(ip)) {
+    return res.status(403).json({ error: 'ip_blocked', message: 'Ваш IP-адрес заблокирован администратором.' });
+  }
+  if (visitorsStore.isKicked(ip)) {
+    return res.status(403).json({ error: 'ip_kicked', message: 'Администратор вас отключил. Попробуйте позже.' });
+  }
 
   if (cfg.siteEnabled === false) {
     return res.status(503).json({ error: 'site_disabled', message: cfg.maintenanceMsg });

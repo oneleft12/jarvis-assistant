@@ -9,7 +9,8 @@ const DEFAULTS = {
   adminPin: process.env.JARVIS_ADMIN_PIN || '9111',   // админ-PIN — вход в панель
   siteEnabled: true,                                  // сайт включён?
   maintenanceMsg: 'Сайт временно отключён администратором. Проверьте позже.',
-  guestsAllowed: true                                 // пускать гостей через домен?
+  guestsAllowed: true,                                // пускать гостей через домен?
+  blockedIPs: []                                      // заблокированные IP (бан из панели)
 };
 
 let cfg = Object.assign({}, DEFAULTS);
