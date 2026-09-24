@@ -35,24 +35,54 @@ app.get('/script.js', (req, res) => res.sendFile(path.join(__dirname, 'script.js
   app.get('/' + f, (req, res) => res.sendFile(path.join(__dirname, f)));
 });
 
-// === PIN-код на API (п.16 плана) ===
-const PIN = process.env.JARVIS_PIN || '1212';
+// === PIN-код и админ-режим (п.16 плана + админ-панель) ===
+// PIN-ы живут в data/admin.json (gitignored) и меняются из админ-панели
+const adminStore = require('./services/adminStore');
+const { isGuest } = require('./services/scope');
 
-// Вход: POST /api/auth { pin } → { ok: true } | 401
+// rate-limit: не больше 10 неудачных попыток сайтового PIN за минуту
+const authFails = { n: 0, until: 0 };
+
+// Вход: POST /api/auth { pin } → { ok: true } | 401 | 429
 app.post('/api/auth', (req, res) => {
+  if (Date.now() < authFails.until) {
+    return res.status(429).json({ error: 'Слишком много попыток. Подождите минуту.' });
+  }
   const pin = String((req.body && req.body.pin) || '');
-  if (pin && pin === PIN) {
+  if (pin && pin === adminStore.get().sitePin) {
+    authFails.n = 0;
     addLog('PIN: вход подтверждён');
     return res.json({ ok: true });
   }
   addLog('PIN: неверная попытка');
+  authFails.n += 1;
+  if (authFails.n >= 10) { authFails.n = 0; authFails.until = Date.now() + 60000; }
   res.status(401).json({ error: 'Неверный PIN-код' });
 });
 
-// Заглушка: всё /api/* (кроме /api/auth) требует заголовок x-jarvis-pin
+// Заглушка на всё /api/*:
+//  - админ-токен (x-jarvis-admin) — полный доступ, даже при выключенном сайте;
+//  - сайт выключен → 503 для всех, кроме админа (посетители видят «офлайн»);
+//  - гости отключены → 403 для запросов через домен;
+//  - остальные: заголовок x-jarvis-pin (кроме /api/auth и /api/admin/login).
 app.use('/api', (req, res, next) => {
+  const admTok = String(req.get('x-jarvis-admin') || '');
+  if (admTok && adminStore.tokens.has(admTok)) return next();
+
+  // вход в админку работает всегда — иначе при выключенном сайте
+  // нельзя было бы войти и включить его обратно (rate-limit внутри роута)
+  if (req.path.startsWith('/admin/login')) return next();
+
+  const cfg = adminStore.get();
+
+  if (cfg.siteEnabled === false) {
+    return res.status(503).json({ error: 'site_disabled', message: cfg.maintenanceMsg });
+  }
+  if (cfg.guestsAllowed === false && isGuest(req)) {
+    return res.status(403).json({ error: 'guests_disabled', message: 'Сайт закрыт для гостей, сэр.' });
+  }
   if (req.path === '/auth') return next();
-  if (String(req.get('x-jarvis-pin') || '') === PIN) return next();
+  if (String(req.get('x-jarvis-pin') || '') === cfg.sitePin) return next();
   res.status(401).json({ error: 'pin_required' });
 });
 
@@ -71,13 +101,14 @@ app.get('/api/plugins', (req, res) => res.json({ commands: pluginHost.registry()
 // Таблица рекордов игр (п.14 плана)
 app.use('/api/scores', require('./routes/scores'));
 
+// Админ-панель: вход по админ-PIN → токен x-jarvis-admin
+app.use('/api/admin', require('./routes/admin'));
+
 // Запуск
 app.listen(PORT, () => {
   addLog(`Сервер запущен: http://localhost:${PORT}`);
   console.log(`J.A.R.V.I.S. server: http://localhost:${PORT}`);
   console.log(
-    process.env.JARVIS_PIN
-      ? `PIN-код из окружения: ${PIN}`
-      : `PIN-код по умолчанию: ${PIN} (смените: JARVIS_PIN=xxxx node server.js)`
+    `PIN сайта: ${adminStore.get().sitePin} · админ-PIN: ${adminStore.get().adminPin} (меняются в админ-панели, Ctrl+Shift+A)`
   );
 });

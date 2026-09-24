@@ -52,4 +52,10 @@ function top(game, n) {
   return list.slice(0, n || 10);
 }
 
-module.exports = { add, top };
+// Полная очистка таблиц (админ-панель)
+function clear() {
+  scores = { runner: [], memory: [], snake: [] };
+  save();
+}
+
+module.exports = { add, top, clear };

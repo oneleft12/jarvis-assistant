@@ -1307,6 +1307,82 @@
   .pin-err { color: #ff5f77; font-size: 12px; min-height: 16px; margin-top: 8px; }
   .pin-hint { font-size: 10px; opacity: 0.45; margin-top: 10px; letter-spacing: 0.5px; }
 
+  /* ===== АДМИН-ПАНЕЛЬ и экран «офлайн» ===== */
+  .adm-box { width: min(430px, 94vw); max-height: 92vh; overflow-y: auto; text-align: left; }
+  .adm-box .pin-title { text-align: center; }
+  .adm-link {
+    display: block;
+    margin: 12px auto 0;
+    background: none;
+    border: 0;
+    color: var(--accent);
+    font-size: 11px;
+    letter-spacing: 1px;
+    opacity: 0.5;
+    cursor: pointer;
+  }
+  .adm-link:hover { opacity: 1; text-shadow: 0 0 8px rgba(var(--accent-rgb), 0.7); }
+  .adm-status {
+    font-size: 12px;
+    line-height: 1.6;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(var(--accent-rgb), 0.25);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+  }
+  .adm-sec { border-top: 1px dashed rgba(var(--accent-rgb), 0.3); padding: 10px 0; }
+  .adm-h { font: 700 11px Consolas, monospace; letter-spacing: 2px; color: var(--accent); margin-bottom: 6px; }
+  .adm-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; margin: 6px 0; }
+  .adm-row input[type="text"],
+  .adm-row input[type="password"],
+  .adm-row input:not([type]) {
+    flex: 1;
+    min-width: 70px;
+    padding: 7px 8px;
+    font: 700 14px Consolas, monospace;
+    letter-spacing: 2px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(var(--accent-rgb), 0.45);
+    border-radius: 6px;
+    color: var(--accent);
+    outline: none;
+  }
+  #admPinInput {
+    width: 100%;
+    padding: 11px;
+    font: 700 22px Consolas, monospace;
+    letter-spacing: 8px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(var(--accent-rgb), 0.45);
+    border-radius: 6px;
+    color: var(--accent);
+    outline: none;
+    margin-bottom: 10px;
+  }
+  #admMsg, #admBcast {
+    width: 100%;
+    padding: 7px 8px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(var(--accent-rgb), 0.4);
+    border-radius: 6px;
+    color: var(--accent);
+    font-size: 12px;
+    outline: none;
+    resize: vertical;
+    margin-bottom: 6px;
+  }
+  #admMsg { min-height: 44px; }
+  .adm-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); }
+  .adm-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .ctl-btn.sm { width: auto; padding: 6px 10px; font-size: 11px; }
+  .ctl-btn.danger { border-color: #ff5f77; color: #ff5f77; }
+  .ctl-btn.danger:hover { background: rgba(255, 95, 119, 0.15); box-shadow: 0 0 10px rgba(255, 95, 119, 0.4); }
+  .adm-note { font-size: 11px; min-height: 14px; margin-top: 6px; color: #6dff9e; }
+  .adm-note.err { color: #ff5f77; }
+
   /* индикатор ответа ИИ */
   .msg.typing { opacity: 0.7; }
   .typing-dots {
@@ -1390,7 +1466,83 @@
            autocomplete="off" placeholder="••••" aria-label="PIN-код">
     <button class="ctl-btn" id="pinGo">ВОЙТИ</button>
     <div id="pinErr" class="pin-err"></div>
-    <div class="pin-hint">PIN задаётся на сервере (JARVIS_PIN)</div>
+    <div class="pin-hint">PIN задаётся на сервере · админ-панель: Ctrl+Shift+A</div>
+    <button class="adm-link" id="pinAdminLink">▸ админ</button>
+  </div>
+</div>
+
+<!-- ОФЛАЙН: сайт отключён (503) или закрыт для гостей (403) -->
+<div id="downOverlay" class="pin-overlay pin-hide" style="z-index:450">
+  <div class="pin-box">
+    <div class="pin-title">J.A.R.V.I.S. // ОФЛАЙН</div>
+    <div class="pin-sub" id="downMsg">Сайт временно отключён администратором.</div>
+    <div class="pin-hint">Доступ для посетителей закрыт</div>
+    <button class="ctl-btn" id="downAdminBtn">▸ ВХОД ДЛЯ АДМИНИСТРАТОРА</button>
+  </div>
+</div>
+
+<!-- АДМИН-ПАНЕЛЬ -->
+<div id="adminOverlay" class="pin-overlay pin-hide" style="z-index:460">
+  <div class="pin-box adm-box">
+    <div class="pin-title">J.A.R.V.I.S. // АДМИН</div>
+
+    <div id="admLogin">
+      <div class="pin-sub">Введите админ-PIN</div>
+      <input id="admPinInput" type="password" inputmode="numeric" maxlength="8"
+             autocomplete="off" placeholder="••••" aria-label="Админ-PIN">
+      <button class="ctl-btn" id="admGo">ВОЙТИ</button>
+      <div id="admErr" class="pin-err"></div>
+      <div class="pin-hint">дефолтный 9111 — смените после первого входа</div>
+    </div>
+
+    <div id="admPanel" hidden>
+      <div class="adm-status" id="admStatus">загрузка…</div>
+
+      <div class="adm-sec">
+        <div class="adm-h">САЙТ</div>
+        <label class="adm-row"><input type="checkbox" id="admSite"> <span id="admSiteLbl">Сайт включён</span></label>
+        <textarea id="admMsg" rows="2" placeholder="Что увидят посетители, когда сайт выключен"></textarea>
+        <button class="ctl-btn" id="admSiteSave">СОХРАНИТЬ</button>
+      </div>
+
+      <div class="adm-sec">
+        <div class="adm-h">PIN-КОДЫ</div>
+        <div class="adm-row">PIN сайта:
+          <input id="admSitePin" maxlength="8" inputmode="numeric" placeholder="4–8 цифр">
+          <button class="ctl-btn sm" id="admSitePinBtn">СМЕНИТЬ</button>
+        </div>
+        <div class="adm-row">Админ-PIN:
+          <input id="admCurPin" type="password" maxlength="8" inputmode="numeric" placeholder="текущий">
+          <input id="admNewPin" maxlength="8" inputmode="numeric" placeholder="новый">
+          <button class="ctl-btn sm" id="admPinBtn">СМЕНИТЬ</button>
+        </div>
+      </div>
+
+      <div class="adm-sec">
+        <div class="adm-h">РЕЖИМЫ</div>
+        <label class="adm-row"><input type="checkbox" id="admGuests"> Гости через домен</label>
+        <label class="adm-row"><input type="checkbox" id="admAI"> ИИ-чат (9router)</label>
+      </div>
+
+      <div class="adm-sec">
+        <div class="adm-h">ИНСТРУМЕНТЫ</div>
+        <div class="adm-row">
+          <input id="admBcast" maxlength="120" placeholder="Сообщение всем клиентам">
+          <button class="ctl-btn sm" id="admBcastBtn">ОТПРАВИТЬ</button>
+        </div>
+        <div class="adm-btns">
+          <button class="ctl-btn sm" id="admClearLogs">Очистить журнал</button>
+          <button class="ctl-btn sm" id="admClearMem">Память</button>
+          <button class="ctl-btn sm" id="admClearScores">Рекорды</button>
+          <button class="ctl-btn sm danger" id="admRestart">↻ ПЕРЕЗАПУСК</button>
+          <button class="ctl-btn sm" id="admLogout">ВЫЙТИ</button>
+        </div>
+      </div>
+
+      <div id="admNote" class="adm-note"></div>
+    </div>
+
+    <button class="ctl-btn" id="admClose">ЗАКРЫТЬ</button>
   </div>
 </div>
 
@@ -1592,6 +1744,7 @@
           <div class="api-item"><span class="api-method">POST</span><span class="api-path">/api/terminal</span><span class="api-desc">тело { command } → { output, clear } — help, ping, theme, rain, status, clear</span></div>
           <div class="api-item"><span class="api-method get">GET</span><span class="api-path">/api/state</span><span class="api-desc">→ { theme, rain, online, uptime, logs } — состояние и журнал (50 записей)</span></div>
           <div class="api-item"><span class="api-method post">POST</span><span class="api-path">/api/auth</span><span class="api-desc">тело { pin } → { ok: true } | 401 — остальной /api/* требует заголовок x-jarvis-pin</span></div>
+          <div class="api-item"><span class="api-method post">POST</span><span class="api-path">/api/admin/*</span><span class="api-desc">login → токен x-jarvis-admin · status | site | pins | guests | ai | clear | broadcast | restart — с токеном, работает даже при выключенном сайте (login: 5 попыток/мин)</span></div>
           <div class="api-item"><span class="api-method get">GET</span><span class="api-path">/api/plugins</span><span class="api-desc">→ { commands: [{ cmd, desc, plugin }] } — реестр плагинов</span></div>
           <div class="api-item"><span class="api-method">POST</span><span class="api-path">/api/scores</span><span class="api-desc">тело { game, score, name } → таблица рекордов (runner|memory|snake), GET ?game= — топ-10</span></div>
         </div>
@@ -1698,6 +1851,8 @@
           <div class="road-item"><span>Игровой зал: Memory, Snake и серверная таблица рекордов</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>Управление играми с телефона: тач-кнопки, D-pad, свайп по полю</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>Гостевой режим: посетители через домен действуют на своём устройстве, хост в безопасности</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>Админ-панель: PIN-вход, отключение сайта для посетителей, смена PIN-кодов</span><span class="badge done">Готово</span></div>
+          <div class="road-item"><span>Админ-инструменты: режимы гостей/ИИ, рассылка, очистка данных, перезапуск</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>PWA: manifest, service worker, офлайн-режим</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>PIN-доступ к API</span><span class="badge done">Готово</span></div>
           <div class="road-item"><span>ИИ-чат: личность Джарвиса на локальной LLM (9router, mimo-v2.6 + запасная muse)</span><span class="badge ai">ИИ</span><span class="badge done">Готово</span></div>
@@ -1707,7 +1862,7 @@
   </div>
 </main>
 
-<footer>J.A.R.V.I.S. INTERFACE v2.7 // ALL SYSTEMS NOMINAL</footer>
+<footer>J.A.R.V.I.S. INTERFACE v2.8 // ALL SYSTEMS NOMINAL</footer>
 
 <script>
 /* ================================================================
@@ -1723,23 +1878,40 @@ var JARVIS = {};
 (function () {
   var origFetch = window.fetch;
   window.fetch = function (input, init) {
+    var url = '';
     try {
-      var url = typeof input === 'string' ? input : (input && input.url) || '';
+      url = typeof input === 'string' ? input : (input && input.url) || '';
       if (url.indexOf('/api/') !== -1 && url.indexOf('/api/auth') === -1) {
+        init = init ? Object.assign({}, init) : {};
+        var h = new Headers(init.headers || (input && input.headers) || undefined);
         var pin = null;
         try { pin = sessionStorage.getItem('jarvis-pin'); } catch (e) {}
-        if (pin) {
-          init = init ? Object.assign({}, init) : {};
-          var h = new Headers(init.headers || (input && input.headers) || undefined);
-          if (!h.has('x-jarvis-pin')) h.set('x-jarvis-pin', pin);
-          init.headers = h;
-        }
+        if (pin && !h.has('x-jarvis-pin')) h.set('x-jarvis-pin', pin);
+        var adm = null;
+        try { adm = sessionStorage.getItem('jarvis-admin-token'); } catch (e) {}
+        if (adm && !h.has('x-jarvis-admin')) h.set('x-jarvis-admin', adm);
+        init.headers = h;
       }
     } catch (e) {}
     return origFetch.call(this, input, init).then(function (resp) {
-      if (resp.status === 401) {
+      // 401: неверный/сменившийся сайтовый PIN → снова показать оверлей
+      if (resp.status === 401 && url.indexOf('/api/admin/login') === -1) {
         try { sessionStorage.removeItem('jarvis-pin'); } catch (e) {}
         if (JARVIS.showPin) JARVIS.showPin();
+      }
+      // 503/403: сайт отключён или закрыт для гостей → экран «офлайн»
+      if (resp.status === 503 || resp.status === 403) {
+        resp
+          .clone()
+          .json()
+          .then(function (d) {
+            if (!d) return;
+            if ((d.error === 'site_disabled' || d.error === 'guests_disabled') && JARVIS.showDown) {
+              JARVIS.showDown(d.message);
+            }
+            if (d.error === 'admin_token_required' && JARVIS.adminRelogin) JARVIS.adminRelogin();
+          })
+          .catch(function () {});
       }
       return resp;
     });
@@ -2310,6 +2482,16 @@ if (!SRClass) {
         stats.diskTotalGb = d.diskTotalGb;
         stats.top = d.top || [];
         stats.cpuHistory = d.cpuHistory || [];
+        // системная рассылка из админ-панели (приходит вместе с метриками)
+        if (d.broadcast && d.broadcast.id) {
+          var seen = null;
+          try { seen = Number(sessionStorage.getItem('jarvis-bcast')); } catch (e) {}
+          if (d.broadcast.id !== seen) {
+            try { sessionStorage.setItem('jarvis-bcast', String(d.broadcast.id)); } catch (e) {}
+            if (JARVIS.botSay) JARVIS.botSay('📣 ' + d.broadcast.text);
+            termLog('Рассылка администратора: ' + d.broadcast.text, 'ok');
+          }
+        }
         render();
       })
       .catch(function () {
@@ -2694,7 +2876,7 @@ function runLocalCommand(cmd, args) {
     }
 
     case 'about':
-      termLog('J.A.R.V.I.S. Interface v2.7 — HUD-интерфейс для Windows.', 'ok');
+      termLog('J.A.R.V.I.S. Interface v2.8 — HUD-интерфейс для Windows.', 'ok');
       termLog('Стек: чистый HTML + CSS + JavaScript, без зависимостей.');
       termLog('Тема: ' + document.body.getAttribute('data-theme') + ' | Дождь: ' + (JARVIS.rainIsOn() ? 'вкл' : 'выкл'));
       break;
@@ -4942,7 +5124,7 @@ JARVIS.postScore = function (game, score) {
   if (savedRain === '0') JARVIS.rainOff();
   updateRainBtn();
 
-  termLog('J.A.R.V.I.S. Terminal v2.7 — инициализация завершена.', 'ok');
+  termLog('J.A.R.V.I.S. Terminal v2.8 — инициализация завершена.', 'ok');
   termLog('Введи help, чтобы увидеть список команд.', 'sys');
 
   // === PIN-доступ (п.16 плана): оверлей-заглушка ===
@@ -5002,6 +5184,234 @@ JARVIS.postScore = function (game, score) {
     try { hasPin = sessionStorage.getItem('jarvis-pin'); } catch (e) {}
     if (hasPin) hide();
     else JARVIS.showPin();
+  })();
+
+  /* ================================================================
+     АДМИН-ПАНЕЛЬ: вход по админ-PIN (Ctrl+Shift+A или «▸ админ»),
+     отключение сайта, смена PIN-кодов, режимы, инструменты
+  ================================================================ */
+  (function () {
+    var ov = document.getElementById('adminOverlay');
+    if (!ov) return;
+    var loginBox = document.getElementById('admLogin');
+    var panel = document.getElementById('admPanel');
+    var pinIn = document.getElementById('admPinInput');
+    var err = document.getElementById('admErr');
+    var note = document.getElementById('admNote');
+    var token = null;
+    try { token = sessionStorage.getItem('jarvis-admin-token'); } catch (e) {}
+
+    function open() {
+      ov.classList.remove('pin-hide');
+      if (token) showPanel();
+      else showLogin();
+    }
+    function close() { ov.classList.add('pin-hide'); }
+    function showLogin() { loginBox.hidden = false; panel.hidden = true; try { pinIn.focus(); } catch (e) {} }
+    function showPanel() { loginBox.hidden = true; panel.hidden = false; refresh(); }
+    function say(msg, isErr) { note.textContent = msg || ''; note.className = 'adm-note' + (isErr ? ' err' : ''); }
+    function failText(e) { return 'Ошибка: ' + ((e.data && e.data.error) || e.message || 'нет связи'); }
+
+    JARVIS.showAdmin = open;
+    JARVIS.adminRelogin = function () {
+      token = null;
+      try { sessionStorage.removeItem('jarvis-admin-token'); } catch (e) {}
+      open();
+    };
+
+    function api(path, body) {
+      return fetch(path, {
+        method: body === undefined ? 'GET' : 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-jarvis-admin': token || '' },
+        body: body === undefined ? undefined : JSON.stringify(body)
+      }).then(function (r) {
+        return r.json().then(function (d) {
+          if (!r.ok) {
+            var e = new Error((d && d.error) || 'Ошибка');
+            e.data = d;
+            e.status = r.status;
+            throw e;
+          }
+          return d;
+        });
+      });
+    }
+
+    // --- вход по админ-PIN (rate-limit на сервере: 5 попыток/мин) ---
+    function login() {
+      var v = (pinIn.value || '').trim();
+      if (!v) { err.textContent = 'Введите админ-PIN'; return; }
+      err.textContent = '';
+      api('/api/admin/login', { pin: v })
+        .then(function (d) {
+          token = d.token;
+          try { sessionStorage.setItem('jarvis-admin-token', token); } catch (e) {}
+          pinIn.value = '';
+          showPanel();
+          termLog('Админ-панель: вход выполнен.', 'ok');
+        })
+        .catch(function (e) { err.textContent = (e.data && e.data.error) || 'Ошибка входа'; });
+    }
+    document.getElementById('admGo').addEventListener('click', login);
+    pinIn.addEventListener('keydown', function (e) { if (e.key === 'Enter') login(); });
+
+    // --- сводка ---
+    function refresh() {
+      api('/api/admin/status')
+        .then(function (s) {
+          document.getElementById('admStatus').innerHTML =
+            'Сайт: <b>' + (s.siteEnabled ? 'ВКЛ' : 'ВЫКЛ') + '</b> · гости: <b>' + (s.guestsAllowed ? 'да' : 'нет') +
+            '</b> · ИИ: <b>' + (s.aiEnabled ? 'вкл' : 'выкл') + '</b><br>аптайм ' + s.uptime +
+            ' · ' + s.version + ' · журнал ' + s.logs + ' · память ' + s.memory +
+            '<br>PIN: ' + s.sitePinMasked + ' · админ: ' + s.adminPinMasked;
+          document.getElementById('admSite').checked = !!s.siteEnabled;
+          document.getElementById('admSiteLbl').textContent = s.siteEnabled ? 'Сайт включён' : 'Сайт ВЫКЛЮЧЕН';
+          document.getElementById('admMsg').value = s.maintenanceMsg || '';
+          document.getElementById('admGuests').checked = !!s.guestsAllowed;
+          document.getElementById('admAI').checked = !!s.aiEnabled;
+        })
+        .catch(function (e) { if (e.status === 403) JARVIS.adminRelogin(); else say(failText(e), true); });
+    }
+
+    // --- вкл/выкл сайта для всех, кроме админа ---
+    document.getElementById('admSiteSave').addEventListener('click', function () {
+      var enabled = document.getElementById('admSite').checked;
+      var msg = document.getElementById('admMsg').value.trim();
+      if (!enabled && !confirm('Отключить сайт для всех посетителей? Вы останетесь в панели.')) return;
+      api('/api/admin/site', { enabled: enabled, message: msg })
+        .then(function () {
+          say(enabled ? 'Сайт включён для всех.' : 'Сайт отключён — посетители видят экран «офлайн».');
+          var down = document.getElementById('downOverlay');
+          if (down) down.classList.add('pin-hide');
+          refresh();
+        })
+        .catch(function (e) { say(failText(e), true); });
+    });
+
+    // --- смена PIN сайта (после смены свой доступ обновляется) ---
+    document.getElementById('admSitePinBtn').addEventListener('click', function () {
+      var v = (document.getElementById('admSitePin').value || '').trim();
+      if (!v) { say('Введите новый PIN сайта (4–8 цифр)', true); return; }
+      api('/api/admin/pins', { sitePin: v })
+        .then(function () {
+          try { sessionStorage.setItem('jarvis-pin', v); } catch (e) {}
+          document.getElementById('admSitePin').value = '';
+          say('PIN сайта изменён на «' + v + '» — посетителям нужен новый.');
+          refresh();
+        })
+        .catch(function (e) { say(failText(e), true); });
+    });
+
+    // --- смена админ-PIN (нужен текущий) ---
+    document.getElementById('admPinBtn').addEventListener('click', function () {
+      var cur = (document.getElementById('admCurPin').value || '').trim();
+      var nw = (document.getElementById('admNewPin').value || '').trim();
+      if (!nw) { say('Введите новый админ-PIN (4–8 цифр)', true); return; }
+      api('/api/admin/pins', { currentAdminPin: cur, adminPin: nw })
+        .then(function () {
+          document.getElementById('admCurPin').value = '';
+          document.getElementById('admNewPin').value = '';
+          say('Админ-PIN изменён.');
+          refresh();
+        })
+        .catch(function (e) { say(failText(e), true); });
+    });
+
+    // --- гости через домен ---
+    var guestsCb = document.getElementById('admGuests');
+    guestsCb.addEventListener('change', function () {
+      var on = guestsCb.checked;
+      api('/api/admin/guests', { allowed: on })
+        .then(function () { say(on ? 'Гости через домен пущены.' : 'Гостям вход закрыт.'); refresh(); })
+        .catch(function (e) { say(failText(e), true); refresh(); });
+    });
+
+    // --- выключатель ИИ-чата ---
+    var aiCb = document.getElementById('admAI');
+    aiCb.addEventListener('change', function () {
+      var on = aiCb.checked;
+      api('/api/admin/ai', { enabled: on })
+        .then(function () { say('ИИ-чат ' + (on ? 'включён.' : 'выключен — работают заготовленные ответы.')); refresh(); })
+        .catch(function (e) { say(failText(e), true); refresh(); });
+    });
+
+    // --- рассылка всем клиентам ---
+    document.getElementById('admBcastBtn').addEventListener('click', function () {
+      var t = (document.getElementById('admBcast').value || '').trim();
+      if (!t) { say('Введите текст рассылки', true); return; }
+      api('/api/admin/broadcast', { text: t })
+        .then(function () { document.getElementById('admBcast').value = ''; say('Рассылка отправлена всем клиентам.'); })
+        .catch(function (e) { say(failText(e), true); });
+    });
+
+    // --- очистка данных ---
+    function clearWhat(what, label) {
+      if (!confirm('Очистить: ' + label + '?')) return;
+      api('/api/admin/clear', { what: what })
+        .then(function () { say('Очищено: ' + label); refresh(); })
+        .catch(function (e) { say(failText(e), true); });
+    }
+    document.getElementById('admClearLogs').addEventListener('click', function () { clearWhat('logs', 'журнал'); });
+    document.getElementById('admClearMem').addEventListener('click', function () { clearWhat('memory', 'память'); });
+    document.getElementById('admClearScores').addEventListener('click', function () { clearWhat('scores', 'рекорды'); });
+
+    // --- перезапуск сервера ---
+    document.getElementById('admRestart').addEventListener('click', function () {
+      if (!confirm('Перезапустить сервер? Панель вернётся через несколько секунд, токен сгорит — придётся войти заново.')) return;
+      api('/api/admin/restart', {})
+        .then(function () {
+          say('Перезапуск… ловим сервер обратно.');
+          var n = 0;
+          var iv = setInterval(function () {
+            n += 1;
+            fetch('/api/state')
+              .then(function (r) {
+                if (r.ok) {
+                  clearInterval(iv);
+                  err.textContent = 'Сервер снова онлайн — войдите в панель заново.';
+                  JARVIS.adminRelogin();
+                }
+              })
+              .catch(function () {});
+            if (n > 20) {
+              clearInterval(iv);
+              say('Сервер не поднялся за 30 секунд — запусти start.bat.', true);
+            }
+          }, 1500);
+        })
+        .catch(function (e) { say(failText(e), true); });
+    });
+
+    // --- выход ---
+    document.getElementById('admLogout').addEventListener('click', function () {
+      api('/api/admin/logout', {}).catch(function () {});
+      JARVIS.adminRelogin();
+      termLog('Админ-панель: выход.', 'sys');
+    });
+
+    document.getElementById('admClose').addEventListener('click', close);
+
+    // --- входы в панель ---
+    var link = document.getElementById('pinAdminLink');
+    if (link) link.addEventListener('click', open);
+    var downBtn = document.getElementById('downAdminBtn');
+    if (downBtn) downBtn.addEventListener('click', open);
+
+    document.addEventListener('keydown', function (e) {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a' || e.key === 'ф' || e.key === 'Ф')) {
+        e.preventDefault();
+        open();
+      }
+    });
+
+    // экран «офлайн» для посетителей (админу он не показывается)
+    JARVIS.showDown = function (msg) {
+      if (token) return;
+      var d = document.getElementById('downOverlay');
+      if (!d) return;
+      document.getElementById('downMsg').textContent = msg || 'Сайт отключён администратором.';
+      d.classList.remove('pin-hide');
+    };
   })();
 
   // PWA: service worker для офлайн-режима (п.15 плана)

@@ -10,7 +10,7 @@ const AI_KEY = process.env.JARVIS_AI_KEY || ''; // пусто → без заг�
 const MODEL = process.env.JARVIS_AI_MODEL || 'openai';
 // запасная модель — только если задана явно (по умолчанию та же → шаг пропускается)
 const BACKUP_MODEL = process.env.JARVIS_AI_MODEL2 || MODEL;
-const ENABLED = process.env.JARVIS_AI !== 'off';
+// включённость проверяется живьём в ask(): JARVIS_AI=off переключается из админ-панели
 
 const RATE_WAIT = 3000;   // пауза после HTTP 429 (окно rate-limit у них секунды)
 const DEADLINE = 32000;   // общий дедлайн: чат не должен висеть минутами
@@ -133,7 +133,7 @@ async function core(message, history, memory) {
 
 // → строка-ответ или null (тогда используется локальный фолбэк)
 async function ask(message, history, memory) {
-  if (!ENABLED) return null;
+  if (process.env.JARVIS_AI === 'off') return null;
 
   let timer;
   const deadline = new Promise((r) => { timer = setTimeout(() => r('__deadline__'), DEADLINE); });

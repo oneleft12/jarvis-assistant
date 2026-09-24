@@ -49,4 +49,10 @@ function remove(id) {
   return false;
 }
 
-module.exports = { list, add, remove };
+// Полная очистка памяти (админ-панель)
+function clear() {
+  notes = [];
+  persist();
+}
+
+module.exports = { list, add, remove, clear };

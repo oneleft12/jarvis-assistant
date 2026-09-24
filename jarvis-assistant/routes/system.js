@@ -5,9 +5,13 @@ const router = express.Router();
 const { getStats } = require('../services/systemMonitor');
 const { getState, formatUptime } = require('../services/stateStore');
 
-// GET /api/system → { cpu, ram, network }
+// GET /api/system → { cpu, ram, network, broadcast }
+// broadcast — системная рассылка из админ-панели: отдаётся вместе с метриками,
+// которые клиент и так опрашивает каждые 2 секунды (без лишних запросов)
 router.get('/system', (req, res) => {
-  res.json(getStats());
+  const out = getStats();
+  out.broadcast = getState().broadcast || null;
+  res.json(out);
 });
 
 // GET /api/state → { theme, rain, online, uptime, logs }
